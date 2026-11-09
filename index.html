@@ -61,6 +61,15 @@
           </div>
           <span class="side-pill pill-purple" id="sidebarBundleBadge">0</span>
         </button>
+        <button id="navWalletBtn" class="side-link" onclick="openWalletModal()">
+          <div class="side-link-left">
+            <span class="side-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="16" cy="15" r="1.5"/></svg>
+            </span>
+            <span>Ví &amp; Nạp tiền <span style="display:none">Wallet</span></span>
+          </div>
+          <span class="side-pill" id="sideWalletBadge" style="background:rgba(16,185,129,0.15);color:#10B981;font-weight:700;">0 đ</span>
+        </button>
         <button id="navUploadBtn" class="side-link" onclick="navigateView('upload')">
           <div class="side-link-left">
             <span class="side-link-icon">
@@ -182,6 +191,12 @@
           <button class="top-icon-btn top-icon-circle hide-xs" style="position: relative;" onclick="showToast('Thông báo: 5 đơn hàng mới cần xử lý.')" title="Thông báo mới">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span style="position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; background: #EF4444; border-radius: 50%; box-shadow: 0 0 8px #EF4444;"></span>
+          </button>
+
+          <button id="topWalletBtn" class="top-icon-btn top-wallet-btn" onclick="openWalletModal()" title="Ví điện tử, nạp tiền MB Bank &amp; tra cứu">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="16" cy="15" r="1.5"/></svg>
+            <span class="hide-xs">Ví:</span>
+            <strong id="topWalletBalance" class="tabular-nums font-bold" style="color: #10B981;">0 đ</strong>
           </button>
 
           <button id="topBundleCartBtn" class="top-icon-btn top-cart-btn" onclick="openBundleCartModal()" title="Mở Giỏ dự án">
@@ -507,6 +522,12 @@
               </div>
 
               <div class="download-hub-box">
+                <!-- KHUNG ĐỊNH GIÁ & BẢN QUYỀN DỰ ÁN -->
+                <div id="detailPriceWrap" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; padding: 10px 14px; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); border-radius: var(--radius-md);">
+                  <span style="font-size:0.85rem; color:var(--text-secondary);">Bản quyền dự án:</span>
+                  <strong id="detailPriceDisplay" style="font-size: 1.15rem; color: #10B981; font-family: var(--font-mono);">Miễn phí (Free)</strong>
+                </div>
+
                 <div class="form-group">
                   <label class="filter-label" for="detailVersionSelect">Phiên bản phát hành (Releases):</label>
                   <select id="detailVersionSelect" class="form-select" onchange="handleVersionSwitch(this.value)"></select>
@@ -522,6 +543,16 @@
                   </a>
                   <button id="rollbackVersionBtn" class="btn btn-secondary" style="display: none;" onclick="handleRollbackToSelectedVersion()">
                     Đặt làm mặc định
+                  </button>
+                </div>
+
+                <!-- THANH CÔNG CỤ QUẢN TRỊ DÀNH CHO ADMIN (SỬA GIÁ / ĐẶT FREE / XÓA) -->
+                <div id="detailAdminActionRow" style="display: none; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border);">
+                  <button type="button" class="btn btn-secondary btn-sm" style="flex: 1;" onclick="openEditCurrentProjectModal()">
+                    ✏️ Sửa giá &amp; Free
+                  </button>
+                  <button type="button" class="btn btn-danger btn-sm" onclick="deleteCurrentProjectFromAdmin()">
+                    🗑️ Xóa dự án
                   </button>
                 </div>
 
@@ -776,14 +807,29 @@
         </section>
 
         <!-- =============================================================== -->
-        <!-- MÀN HÌNH 6: TRÌNH THUẬT SĨ ĐĂNG TẢI 4 BƯỚC & ĐỒNG BỘ GITHUB     -->
+        <!-- MÀN HÌNH 6: TRÌNH THUẬT SĨ ĐĂNG TẢI 4 BƯỚC (DÀNH RIÊNG CHO ADMIN) -->
         <!-- =============================================================== -->
         <section id="viewUpload" class="view-section" style="display: none;">
-          <div class="wizard-card">
+          <!-- KHỐI CHẶN QUYỀN ĐĂNG TẢI NẾU KHÔNG PHẢI ADMIN -->
+          <div id="uploadAdminPermissionGate" class="signed-banner" style="display: none; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.35); color: #FCA5A5; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <strong style="color: #EF4444; font-size: 1.05rem;">⛔ Quyền Hạn Bị Giới Hạn:</strong>
+                <p style="margin: 4px 0 0; font-size: 0.84rem; color: var(--text-secondary);">
+                  Chỉ tài khoản <strong>Quản Trị Viên (Admin)</strong> mới có quyền tải toàn bộ mã nguồn dự án mới lên hệ thống và định giá. Tài khoản người dùng thường chỉ có thể xem, nạp tiền và mua/tải dự án.
+                </p>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" onclick="openAuthModal('login')">
+                Đăng nhập tài khoản Admin (admin)
+              </button>
+            </div>
+          </div>
+
+          <div id="wizStepsCard" class="wizard-card">
             <div class="wizard-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
               <div>
-                <h2>Đăng tải Dự án Mới (4-Step Wizard) & Đồng bộ GitHub</h2>
-                <p>Mọi gói tải lên đều đi qua Worker Quét An Toàn 4 Tầng (Chống Zip Bomb 100:1, Zip Slip, Lộ khóa AWS/.env, Tự động lọc sạch <code>node_modules</code> & chấm điểm Health Score 0–100).</p>
+                <h2>Đăng tải Dự án Mới (Dành cho Quản trị viên Admin)</h2>
+                <p>Tải toàn bộ dự án lên hệ thống, định giá bán hoặc thiết lập Miễn phí (Free). Mọi gói tải lên đều đi qua Worker Quét An Toàn 4 Tầng.</p>
               </div>
               <button class="btn btn-secondary" onclick="importSampleGitHubRepoFromUI()">
                 Đồng bộ nhanh từ GitHub Repo
@@ -791,17 +837,17 @@
             </div>
 
             <div class="wizard-steps-bar">
-              <div id="wizStepIndicator1" class="wiz-step active">1. Thông tin cơ bản</div>
+              <div id="wizStepIndicator1" class="wiz-step active">1. Thông tin &amp; Định giá</div>
               <div id="wizStepIndicator2" class="wiz-step">2. Gói mã nguồn</div>
-              <div id="wizStepIndicator3" class="wiz-step">3. Tài liệu & Demo</div>
-              <div id="wizStepIndicator4" class="wiz-step">4. Quét 4 tầng & Xuất bản</div>
+              <div id="wizStepIndicator3" class="wiz-step">3. Tài liệu &amp; Demo</div>
+              <div id="wizStepIndicator4" class="wiz-step">4. Quét 4 tầng &amp; Xuất bản</div>
             </div>
 
             <div id="wizStep1" class="wiz-pane">
               <div class="form-grid-2">
                 <div class="form-group">
                   <label class="filter-label" for="upTitle">Tên dự án (*)</label>
-                  <input type="text" id="upTitle" class="form-input" placeholder="Ví dụ: Hệ thống AI RAG Tiếng Việt" oninput="handleUploadTitleInput(this.value)">
+                  <input type="text" id="upTitle" class="form-input" placeholder="Ví dụ: Hệ thống nộp bài trực tuyến" oninput="handleUploadTitleInput(this.value)">
                 </div>
                 <div class="form-group">
                   <label class="filter-label" for="upSlug">Đường dẫn tĩnh (Slug tự động)</label>
@@ -830,7 +876,23 @@
                   <input type="text" id="upTags" class="form-input" value="TypeScript, React, Node.js, Docker">
                 </div>
               </div>
-              <div class="wizard-footer">
+
+              <!-- KHỐI ĐỊNH GIÁ DỰ ÁN CHO ADMIN -->
+              <div class="form-grid-2" style="margin-top: 12px; padding: 12px 14px; background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.25); border-radius: var(--radius-md);">
+                <div class="form-group">
+                  <label class="filter-label" for="upPrice">Định giá dự án (VNĐ — 0 = Miễn phí) (*)</label>
+                  <input type="number" id="upPrice" class="form-input" value="0" min="0" step="10000" placeholder="0 = Miễn phí (Free)">
+                  <small class="text-muted" style="font-size: 0.74rem;">Nhập 0 để cho phép tải Miễn Phí (Free), hoặc nhập giá bán (VD: 50000, 100000...).</small>
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; padding-top: 22px;">
+                  <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="upIsFreeCheck" checked onchange="document.getElementById('upPrice').value = this.checked ? '0' : '50000'">
+                    <span><strong>Dự án Miễn Phí (Free 0 VNĐ)</strong></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="wizard-footer" style="margin-top: 14px;">
                 <button class="btn btn-primary" onclick="goToWizardStep(2)">Tiếp tục: Bước 2</button>
               </div>
             </div>
@@ -1154,6 +1216,14 @@
             [ Đăng nhập ngay ]
           </button>
 
+          <!-- TIỆN ÍCH ĐĂNG NHẬP NHANH QUẢN TRỊ VIÊN ADMIN -->
+          <div style="margin-top: 14px; padding: 10px 12px; background: rgba(139,92,246,0.08); border: 1px dashed rgba(139,92,246,0.35); border-radius: var(--radius-md); text-align: center;">
+            <div style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 6px;">Tài khoản Quản Trị Viên (Toàn quyền đăng tải, sửa giá &amp; xóa):</div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="quickFillAdminLogin()" style="font-family: var(--font-mono); font-size: 0.8rem; border-color: rgba(139,92,246,0.5); color: #C4B5FD; width: 100%;">
+              ⚡ Đăng nhập Quản Trị: admin | admin1109@#
+            </button>
+          </div>
+
           <div style="text-align: center; margin-top: 16px; font-size: 0.82rem; color: var(--text-secondary);">
             Chưa có tài khoản? 
             <a href="javascript:void(0)" onclick="switchAuthModalTab('register')" style="color: var(--purple-primary); font-weight: 600; text-decoration: underline;">
@@ -1281,6 +1351,206 @@
       </div>
     </div>
   </div>
+  <!-- MODAL VÍ ĐIỆN TỬ, NẠP TIỀN MB BANK & TRA CỨU GIAO DỊCH -->
+  <div id="walletModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeWalletModal()">
+    <div class="modal-box" style="max-width: 720px; max-height: 90dvh; overflow-y: auto;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(16,185,129,0.15); display: flex; align-items: center; justify-content: center; color: #10B981;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="16" cy="15" r="1.5"/></svg>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem;">Ví Điện Tử &amp; Nạp Tiền MB Bank</h3>
+            <small class="text-muted" style="font-size: 0.78rem;">Quản lý số dư, nạp tiền qua VietQR và tra cứu các giao dịch mua dự án</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" onclick="closeWalletModal()" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- THANH HIỂN THỊ SỐ DƯ HIỆN TẠI -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin-bottom: 14px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: var(--radius-md);">
+        <div>
+          <span style="font-size: 0.82rem; color: var(--text-secondary);">Số dư khả dụng hiện tại:</span>
+          <div style="font-size: 1.35rem; font-weight: 800; color: #10B981; font-family: var(--font-mono);" id="walletModalBalanceDisplay">0 đ</div>
+        </div>
+        <div id="walletRoleBadgeWrap">
+          <span class="badge badge-success" id="walletUserRoleBadge">Thành viên</span>
+        </div>
+      </div>
+
+      <!-- TABS VÍ & GIAO DỊCH -->
+      <div class="auth-tabs-bar" style="margin-bottom: 14px;">
+        <button type="button" id="walletTabTopupBtn" class="auth-tab-btn active" onclick="switchWalletTab('topup')">
+          1. Nạp tiền VietQR MB Bank
+        </button>
+        <button type="button" id="walletTabHistoryBtn" class="auth-tab-btn" onclick="switchWalletTab('history')">
+          2. Tra cứu nạp tiền (<span id="walletHistoryCount">0</span>)
+        </button>
+        <button type="button" id="walletTabPurchasedBtn" class="auth-tab-btn" onclick="switchWalletTab('purchased')">
+          3. Dự án đã mua (<span id="walletPurchasedCount">0</span>)
+        </button>
+      </div>
+
+      <!-- TAB 1: NẠP TIỀN QUA VIETQR MB BANK -->
+      <div id="walletPaneTopup" class="wallet-pane">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: start;">
+          <!-- Cột hiển thị Mã QR -->
+          <div style="background: #ffffff; padding: 14px; border-radius: var(--radius-md); text-align: center; color: #111827; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <div style="font-weight: 800; font-size: 0.92rem; color: #1E3A8A; margin-bottom: 4px;">VIETQR · MB BANK</div>
+            <img src="vietqr_mb.jpg" alt="Mã VietQR MB Bank LE THUAN TIEN" style="width: 100%; max-width: 240px; height: auto; border-radius: 8px; display: block; margin: 0 auto; object-fit: contain;">
+            <div style="margin-top: 8px; font-size: 0.74rem; color: #4B5563;">
+              Quét mã bằng ứng dụng Ngân hàng bất kỳ (MBBank, Vietcombank, Techcombank, VPBank, MoMo...)
+            </div>
+          </div>
+
+          <!-- Cột thông tin chuyển khoản & Tạo lệnh nạp -->
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="padding: 10px 14px; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: var(--radius-md);">
+              <div style="font-size: 0.75rem; color: var(--text-secondary);">Ngân hàng thụ hưởng:</div>
+              <strong style="color: #60A5FA; font-size: 0.95rem;">MB Bank (Ngân Hàng TMCP Quân Đội)</strong>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: var(--radius-md);">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Chủ tài khoản:</div>
+                <strong style="color: var(--text-primary); font-size: 1rem; letter-spacing: 0.5px;">LE THUAN TIEN</strong>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="copyDirectString('LE THUAN TIEN')" title="Sao chép tên chủ tài khoản">
+                Sao chép
+              </button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: var(--radius-md);">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Số tài khoản (STK):</div>
+                <strong style="color: #10B981; font-size: 1.15rem; font-family: var(--font-mono);">7897895757</strong>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="copyDirectString('7897895757')" title="Sao chép số tài khoản">
+                Sao chép STK
+              </button>
+            </div>
+
+            <!-- CHỌN SỐ TIỀN CẦN NẠP -->
+            <div class="form-group">
+              <label class="filter-label" for="topupAmountInput">Số tiền nạp (VNĐ):</label>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectTopupPreset(20000)">20.000 đ</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectTopupPreset(50000)">50.000 đ</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectTopupPreset(100000)">100.000 đ</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectTopupPreset(200000)">200.000 đ</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="selectTopupPreset(500000)">500.000 đ</button>
+              </div>
+              <input type="number" id="topupAmountInput" class="form-input" value="50000" min="10000" step="10000" placeholder="Nhập số tiền VNĐ...">
+            </div>
+
+            <!-- NỘI DUNG / GHI CHÚ CHUYỂN KHOẢN BẮT BUỘC -->
+            <div style="padding: 10px 14px; background: rgba(139,92,246,0.1); border: 1px dashed var(--purple-primary); border-radius: var(--radius-md);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-size: 0.78rem; color: #C4B5FD; font-weight: 600;">Nội dung chuyển khoản (Bắt buộc để Admin kiểm tra):</span>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="copyCurrentTopupNote()" style="font-size: 0.72rem; padding: 2px 8px;">
+                  Sao chép nội dung
+                </button>
+              </div>
+              <div id="topupNoteDisplay" style="font-size: 1.05rem; font-weight: 700; color: #F59E0B; font-family: var(--font-mono); word-break: break-all;">
+                NAP admin 8492
+              </div>
+              <small class="text-muted" style="font-size: 0.72rem; display: block; margin-top: 4px;">
+                * Quý khách vui lòng nhập chính xác nội dung ghi chú ở trên khi chuyển khoản để hệ thống đối chiếu và duyệt nạp tự động nhanh nhất.
+              </small>
+            </div>
+
+            <button type="button" id="topupSubmitBtn" class="btn btn-primary btn-block" onclick="submitTopupRequest()" style="margin-top: 4px; min-height: 44px;">
+              [ Xác nhận đã chuyển khoản / Tạo lệnh nạp tiền ]
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: TRA CỨU LỊCH SỬ NẠP TIỀN -->
+      <div id="walletPaneHistory" class="wallet-pane" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <h4 style="margin: 0; font-size: 0.95rem;">Lịch Sử Các Lệnh Nạp Tiền</h4>
+            <small class="text-muted" style="font-size: 0.76rem;">Admin sẽ kiểm tra ghi chú chuyển khoản và duyệt cộng tiền vào ví</small>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="renderTopupHistory()">Làm mới</button>
+        </div>
+        <div id="topupHistoryList" class="table-responsive" style="max-height: 380px; overflow-y: auto;"></div>
+      </div>
+
+      <!-- TAB 3: TRA CỨU DỰ ÁN ĐÃ MUA -->
+      <div id="walletPanePurchased" class="wallet-pane" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <h4 style="margin: 0; font-size: 0.95rem;">Danh Sách Dự Án Đã Mua &amp; Bản Quyền Sở Hữu</h4>
+            <small class="text-muted" style="font-size: 0.76rem;">Bạn có thể tải lại toàn bộ gói mã nguồn bất kỳ lúc nào mà không cần trả thêm phí</small>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="renderPurchasedProjectsList()">Làm mới</button>
+        </div>
+        <div id="purchasedProjectsList" class="table-responsive" style="max-height: 380px; overflow-y: auto;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SỬA GIÁ BÁN & QUẢN TRỊ DỰ ÁN DÀNH CHO ADMIN -->
+  <div id="editProjectModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeEditProjectModal()">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(139,92,246,0.2); display: flex; align-items: center; justify-content: center; color: var(--purple-primary);">
+            ✏️
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.1rem;">Quản Trị Dự Án (Admin)</h3>
+            <small class="text-muted" style="font-size: 0.76rem;">Định giá bán, thiết lập Miễn phí (Free) hoặc xóa dự án</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" onclick="closeEditProjectModal()" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+        <input type="hidden" id="editProjectId">
+        <div class="form-group">
+          <label class="filter-label" for="editProjectTitle">Tên dự án (*):</label>
+          <input type="text" id="editProjectTitle" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+          <label class="filter-label" for="editProjectDesc">Mô tả ngắn:</label>
+          <textarea id="editProjectDesc" class="form-textarea" rows="2"></textarea>
+        </div>
+
+        <div class="form-group" style="padding: 12px; background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.3); border-radius: var(--radius-md);">
+          <label class="filter-label" for="editProjectPrice">Định giá dự án (VNĐ):</label>
+          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+            <input type="number" id="editProjectPrice" class="form-input" min="0" step="10000" placeholder="0 = Miễn phí (Free)" style="flex: 1;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editProjectPrice').value='0'; document.getElementById('editProjectIsFree').checked=true;">0 đ</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editProjectPrice').value='50000'; document.getElementById('editProjectIsFree').checked=false;">50k</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editProjectPrice').value='100000'; document.getElementById('editProjectIsFree').checked=false;">100k</button>
+          </div>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+            <input type="checkbox" id="editProjectIsFree" onchange="handleEditProjectFreeToggle(this.checked)">
+            <span><strong>Dự án này hoàn toàn Miễn Phí (Free 0 đ)</strong></span>
+          </label>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px;">
+          <button type="button" class="btn btn-danger btn-sm" onclick="deleteCurrentProjectFromAdmin()">
+            🗑️ Xóa dự án khỏi Web
+          </button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-secondary" onclick="closeEditProjectModal()">Hủy</button>
+            <button type="button" class="btn btn-primary" onclick="saveEditProject()">[ 💾 Lưu thay đổi ]</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="toastBox" class="toast-notification" style="display: none;"></div>
   <script src="app.js"></script>
 </body>

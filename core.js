@@ -3224,6 +3224,27 @@ class OpenHubPlatform {
   }
 
   seedInitialData() {
+    const adminUser = {
+      id: "u-admin-root",
+      username: "admin",
+      email: "admin@openhub.vn",
+      password_hash: hashPasswordScrypt("admin1109@#"),
+      display_name: "Quản Trị Viên (Admin)",
+      avatar_url: "https://api.dicebear.com/7.x/bottts/svg?seed=admin",
+      bio: "Quản trị viên tối cao — Toàn quyền đăng tải, sửa giá, xóa dự án và duyệt nạp tiền",
+      skills_array: ["Full-Access", "Security", "Fintech", "DevOps"],
+      social_links_json: {},
+      role: "admin",
+      email_verified_at: new Date().toISOString(),
+      two_factor_enabled: false,
+      two_factor_secret_enc: null,
+      reputation_points: 9999,
+      status: "active",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    this.users.set(adminUser.id, adminUser);
+
     const contributor = {
       id: "u-contributor-1",
       username: "minh_architect",

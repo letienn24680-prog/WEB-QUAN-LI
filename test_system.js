@@ -521,8 +521,45 @@ async function runAllTests() {
     assert.ok(jsText.includes('navigateView("explore")'), "app.js: Mặc định trang chủ khi mới truy cập là explore");
   });
 
+  // --------------------------------------------------------------------------
+  // 10. PHÂN HỆ VÍ ĐIỆN TỬ, NẠP TIỀN VIETQR MB BANK, BẢN QUYỀN & QUẢN TRỊ ADMIN
+  // --------------------------------------------------------------------------
+  await test("Ví Điện Tử, Nạp Tiền VietQR MB Bank, Bản Quyền Dự Án & Phân Quyền Quản Trị Admin", async () => {
+    const htmlText = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
+    const jsText = fs.readFileSync(path.join(__dirname, "app.js"), "utf8");
+    const coreText = fs.readFileSync(path.join(__dirname, "core.js"), "utf8");
+
+    // 1. Kiểm tra tài khoản Quản trị Admin: admin | admin1109@#
+    assert.ok(coreText.includes('"admin"') && coreText.includes("admin1109@#"), "core.js: Phải khởi tạo tài khoản admin với mật khẩu admin1109@#");
+    assert.ok(jsText.includes("admin1109@#"), "app.js: Phải hỗ trợ đăng nhập admin với mật khẩu admin1109@#");
+
+    // 2. Kiểm tra thông tin thanh toán VietQR MB Bank: LE THUAN TIEN, 7897895757 & ảnh vietqr_mb.jpg
+    assert.ok(fs.existsSync(path.join(__dirname, "vietqr_mb.jpg")), "vietqr_mb.jpg: Phải có tệp ảnh mã QR nhận tiền của người dùng");
+    assert.ok(htmlText.includes("LE THUAN TIEN"), "index.html: Phải có tên chủ tài khoản LE THUAN TIEN");
+    assert.ok(htmlText.includes("7897895757"), "index.html: Phải có số tài khoản 7897895757");
+    assert.ok(htmlText.includes("MB Bank"), "index.html: Phải có ngân hàng thụ hưởng MB Bank");
+    assert.ok(htmlText.includes("vietqr_mb.jpg"), "index.html: Phải nhúng ảnh mã QR vietqr_mb.jpg");
+
+    // 3. Kiểm tra Modal Ví Điện Tử & Nạp Tiền MB Bank (#walletModal)
+    assert.ok(htmlText.includes('id="walletModal"'), "index.html: Phải có hộp thoại #walletModal");
+    assert.ok(htmlText.includes('id="topWalletBtn"'), "index.html: Phải có nút ví điện tử trên thanh điều hướng đầu trang");
+    assert.ok(htmlText.includes('id="navWalletBtn"'), "index.html: Phải có mục Ví & Nạp tiền trên Sidebar");
+
+    // 4. Kiểm tra phân quyền đăng tải (chỉ Admin mới được đăng tải) & Sửa giá
+    assert.ok(htmlText.includes('id="uploadAdminPermissionGate"'), "index.html: Phải có khối chặn quyền đăng tải cho tài khoản không phải Admin");
+    assert.ok(htmlText.includes('id="editProjectModal"'), "index.html: Phải có modal sửa giá & xóa dự án dành cho Admin");
+
+    // 5. Kiểm tra các hàm logic trong app.js
+    assert.ok(jsText.includes("getStoredWalletBalance"), "app.js: Phải có hàm getStoredWalletBalance");
+    assert.ok(jsText.includes("openWalletModal"), "app.js: Phải có hàm openWalletModal");
+    assert.ok(jsText.includes("submitTopupRequest"), "app.js: Phải có hàm submitTopupRequest");
+    assert.ok(jsText.includes("approveTopupRequest"), "app.js: Phải có hàm approveTopupRequest dành cho Admin");
+    assert.ok(jsText.includes("handleBuyOrDownloadProject"), "app.js: Phải có hàm handleBuyOrDownloadProject");
+    assert.ok(jsText.includes("saveEditProject"), "app.js: Phải có hàm saveEditProject cho Admin");
+  });
+
   console.log("\n======================================================================");
-  console.log(`HOÀN TẤT: TOÀN BỘ ${passed}/9 NHÓM KIỂM THỬ (v2.0 + ĐA THIẾT BỊ + NEXAPANEL DASHBOARD) ĐẠT 100%!`);
+  console.log(`HOÀN TẤT: TOÀN BỘ ${passed}/10 NHÓM KIỂM THỬ ĐẠT 100%!`);
   console.log("======================================================================");
 }
 

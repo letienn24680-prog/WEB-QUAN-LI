@@ -83,6 +83,7 @@ const OFFLINE_PROJECTS = [
     view_count: 5890,
     owner_username: "minh_architect",
     version: "1.1.0",
+    price: 0,
     size_bytes: 45200000,
     sha256_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     quick_start_guide: "# Yêu cầu môi trường\n- Node.js >= 20.x & Python >= 3.11\n- PostgreSQL 16 + pgvector\n\n# Cài đặt & chạy nhanh\n```bash\ncp .env.example .env\ndocker compose up -d\npython -m uvicorn src.main:app --reload --port 8000\n```",
@@ -121,6 +122,7 @@ const OFFLINE_PROJECTS = [
     view_count: 3410,
     owner_username: "minh_architect",
     version: "2.0.0",
+    price: 50000,
     size_bytes: 38100000,
     sha256_hash: "a5892c1798f01c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     quick_start_guide: "# Cài đặt nhanh NextCommerce Pro\n```bash\nnpm install\ncp .env.example .env.local\nnpm run db:migrate\nnpm run dev\n```",
@@ -157,6 +159,7 @@ const OFFLINE_PROJECTS = [
     view_count: 2150,
     owner_username: "admin_secops",
     version: "1.2.0",
+    price: 0,
     size_bytes: 12400000,
     sha256_hash: "b7291a1498fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     quick_start_guide: "# Chạy trực tiếp qua Binary hoặc Cargo\n```bash\ncargo build --release\n./target/release/secguard scan ./my-project\n```",
@@ -178,8 +181,42 @@ const OFFLINE_PROJECTS = [
   }
 ];
 
+function getDeletedProjectIds() {
+  try {
+    const raw = localStorage.getItem("openhub_deleted_projects");
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function getMergedProjectsList() {
+  const deleted = getDeletedProjectIds();
+  let list = OFFLINE_PROJECTS.filter((p) => !deleted.includes(p.id));
+  try {
+    const raw = localStorage.getItem("openhub_custom_projects");
+    if (raw) {
+      const custom = JSON.parse(raw);
+      for (const c of custom) {
+        const idx = list.findIndex((p) => p.id === c.id || p.slug === c.slug);
+        if (idx >= 0) {
+          list[idx] = { ...list[idx], ...c };
+        } else {
+          list.unshift(c);
+        }
+      }
+    }
+  } catch (e) {}
+  return list;
+}
+
+function getProjectByIdOrSlug(id, slug) {
+  const list = getMergedProjectsList();
+  return list.find((p) => (id && p.id === id) || (slug && p.slug === slug)) || null;
+}
+
 function getOfflineProjectsFilter({ q = "", category = "", tags = "", license = "", sort = "downloads", hasDemo = "" } = {}) {
-  let list = [...OFFLINE_PROJECTS];
+  let list = getMergedProjectsList();
   const query = String(q || "").toLowerCase().trim();
   if (query) {
     list = list.filter((p) => p.title.toLowerCase().includes(query) || p.short_description.toLowerCase().includes(query) || p.tags.some((t) => t.toLowerCase().includes(query)));
@@ -208,7 +245,8 @@ function getOfflineProjectsFilter({ q = "", category = "", tags = "", license = 
 }
 
 function getOfflineProjectDetail(slug) {
-  const p = OFFLINE_PROJECTS.find((it) => it.slug === slug) || OFFLINE_PROJECTS[0];
+  const list = getMergedProjectsList();
+  const p = list.find((it) => it.slug === slug || it.id === slug) || list[0];
   return {
     ...p,
     reviews: [
@@ -258,6 +296,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     appState.currentUser = null;
   }
   updateAuthHeaderUi();
+  updateWalletUI();
 
   // Khởi động trang web: Mặc định ở Trang chủ Dashboard chuẩn NexaPanel
   navigateView("dashboard");
@@ -481,6 +520,16 @@ function navigateView(viewName) {
 
   updateStickyMobileDownloadBar();
 
+  if (viewName === "upload") {
+    const isAdmin = appState.currentUser?.role === "admin";
+    const gate = document.getElementById("uploadAdminPermissionGate");
+    const wizCard = document.getElementById("wizStepsCard");
+    if (gate && wizCard) {
+      gate.style.display = isAdmin ? "none" : "block";
+      wizCard.style.display = isAdmin ? "block" : "none";
+    }
+  }
+
   if (viewName === "explore") {
     triggerExploreSearch().then(() => {
       try {
@@ -664,33 +713,49 @@ async function triggerExploreSearch() {
   const countText = document.getElementById("exploreResultCountText");
   if (countText) countText.textContent = `Hiển thị ${items.length} / ${data.total || items.length} dự án công khai đã xác thực an toàn`;
   const grid = document.getElementById("exploreProjectsGrid");
-    grid.innerHTML = items
-      .map(
-        (p) => `
-      <article class="project-card" data-layout-id="project-card-${escapeHtml(p.id)}" onclick="openProjectDetail('${escapeHtml(p.slug)}')">
-        <div>
-          <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+  const isAdmin = appState.currentUser?.role === "admin";
+  grid.innerHTML = items
+    .map(
+      (p) => {
+        const price = Number(p.price) || 0;
+        const isFree = price === 0;
+        const purchased = isProjectPurchased(p.id, appState.currentUser?.username);
+        return `
+    <article class="project-card" data-layout-id="project-card-${escapeHtml(p.id)}" onclick="openProjectDetail('${escapeHtml(p.slug)}')">
+      <div>
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
+          <div style="display:flex;gap:6px;align-items:center;">
             <span class="badge badge-primary">${escapeHtml(p.category_name)}</span>
-            <span class="badge badge-emerald">Sạch (Clean) · ${p.health_score || 96}/100</span>
+            ${isFree ? `<span class="badge badge-success" style="font-weight:700;">Miễn phí (Free)</span>` : `<span class="badge" style="background:rgba(139,92,246,0.18);color:#C4B5FD;border:1px solid rgba(139,92,246,0.35);font-weight:700;">${formatVND(price)}</span>`}
           </div>
-          <h3 style="margin-bottom:6px;font-size:1rem;font-weight:600;">${escapeHtml(p.title)}</h3>
-          <p style="color:var(--text-secondary);font-size:0.84rem;">${escapeHtml(p.short_description)}</p>
+          <span class="badge badge-emerald">Sạch (Clean) · ${p.health_score || 96}/100</span>
         </div>
-        <div>
-          <div class="tags-row">
-            ${(p.tags || []).slice(0, 4).map((t) => `<span class="tag-chip">#${escapeHtml(t)}</span>`).join("")}
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border);font-size:0.78rem;color:var(--text-secondary);flex-wrap:wrap;gap:6px;">
-            <span>@${escapeHtml(p.owner_username)}</span>
-            <span class="tabular-nums">Sao: ${p.star_count || 0} · Tải: ${formatCompactMetric(p.download_count || 0)}</span>
-            <button type="button" class="btn btn-secondary btn-sm" style="min-height:30px;padding:3px 9px;" onclick="event.stopPropagation(); addProjectToBundleFromCard(this, '${escapeHtml(p.id)}', '${escapeHtml(p.slug)}', '${escapeHtml(p.title)}')">
-              Thêm vào giỏ
+        <h3 style="margin-bottom:6px;font-size:1rem;font-weight:600;">${escapeHtml(p.title)}</h3>
+        <p style="color:var(--text-secondary);font-size:0.84rem;">${escapeHtml(p.short_description)}</p>
+      </div>
+      <div>
+        <div class="tags-row">
+          ${(p.tags || []).slice(0, 4).map((t) => `<span class="tag-chip">#${escapeHtml(t)}</span>`).join("")}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border);font-size:0.78rem;color:var(--text-secondary);flex-wrap:wrap;gap:6px;">
+          <span>@${escapeHtml(p.owner_username)}</span>
+          <span class="tabular-nums">Sao: ${p.star_count || 0} · Tải: ${formatCompactMetric(p.download_count || 0)}</span>
+          <div style="display:flex;gap:4px;align-items:center;">
+            ${(isFree || purchased || isAdmin)
+              ? `<button type="button" class="btn btn-secondary btn-sm" style="min-height:30px;padding:3px 8px;" onclick="event.stopPropagation(); openProjectDetail('${escapeHtml(p.slug)}')">Xem &amp; Tải</button>`
+              : `<button type="button" class="btn btn-primary btn-sm" style="min-height:30px;padding:3px 8px;" onclick="event.stopPropagation(); handleBuyOrDownloadProject('${escapeHtml(p.id)}', '${escapeHtml(p.slug)}')">💳 Mua (${formatVND(price)})</button>`
+            }
+            <button type="button" class="btn btn-secondary btn-sm" style="min-height:30px;padding:3px 8px;" onclick="event.stopPropagation(); addProjectToBundleFromCard(this, '${escapeHtml(p.id)}', '${escapeHtml(p.slug)}', '${escapeHtml(p.title)}')">
+              Giỏ
             </button>
+            ${isAdmin ? `<button type="button" class="btn btn-secondary btn-sm" style="min-height:30px;padding:3px 6px;" title="Sửa dự án" onclick="event.stopPropagation(); openEditProjectModalById('${escapeHtml(p.id)}')">✏️</button>` : ""}
           </div>
         </div>
-      </article>`
-      )
-      .join("");
+      </div>
+    </article>`;
+      }
+    )
+    .join("");
   } catch (e) {
     sk.style.display = "none";
     err.style.display = "block";
@@ -1285,6 +1350,41 @@ async function openProjectDetail(slug) {
   document.getElementById("detailRatingAvg").textContent = `${d.rating_avg || 5.0} (${d.rating_count || 0})`;
   document.getElementById("detailStarCountBtn").textContent = d.star_count || 0;
 
+  // Cập nhật Bản quyền & Giá bán dự án
+  const priceVal = Number(d.price) || 0;
+  const isFree = priceVal === 0;
+  const isAdmin = appState.currentUser?.role === "admin";
+  const isPurchased = isProjectPurchased(d.id, appState.currentUser?.username);
+
+  const priceDisplay = document.getElementById("detailPriceDisplay");
+  if (priceDisplay) {
+    if (isFree) {
+      priceDisplay.textContent = "Miễn phí (Free)";
+      priceDisplay.style.color = "#10B981";
+    } else {
+      priceDisplay.textContent = formatVND(priceVal);
+      priceDisplay.style.color = "#C4B5FD";
+    }
+  }
+
+  const dlBtn = document.getElementById("oneClickDownloadBtn");
+  if (dlBtn) {
+    if (isFree) {
+      dlBtn.textContent = "[ Tải xuống .ZIP (Miễn phí) ]";
+    } else if (isAdmin) {
+      dlBtn.textContent = "[ Tải xuống .ZIP (Toàn quyền Admin) ]";
+    } else if (isPurchased) {
+      dlBtn.textContent = "[ Tải xuống .ZIP (Đã sở hữu bản quyền) ]";
+    } else {
+      dlBtn.textContent = `[ 💳 Mua dự án (${formatVND(priceVal)}) ]`;
+    }
+  }
+
+  const adminRow = document.getElementById("detailAdminActionRow");
+  if (adminRow) {
+    adminRow.style.display = isAdmin ? "flex" : "none";
+  }
+
   document.getElementById("detailTagsRow").innerHTML = (d.tags || [])
     .map((t) => `<span class="tag-chip">#${escapeHtml(t)}</span>`)
     .join("");
@@ -1807,9 +1907,20 @@ function toggleCodeWordWrap() {
 
 async function handleOneClickDownload() {
   if (!appState.currentUser) {
-    openAuthModal("register", () => handleOneClickDownload(), "Vui lòng đăng ký tài khoản mới để tải xuống gói mã nguồn (.ZIP)");
+    openAuthModal("login", () => handleOneClickDownload(), "Vui lòng đăng nhập để tải xuống gói mã nguồn (.ZIP)");
     return;
   }
+  const proj = appState.currentProject;
+  const price = Number(proj?.price) || 0;
+  const isFree = price === 0;
+  const isPurchased = isProjectPurchased(proj?.id, appState.currentUser.username);
+  const isAdmin = appState.currentUser?.role === "admin";
+
+  if (!isFree && !isPurchased && !isAdmin) {
+    handleBuyOrDownloadProject(proj.id, proj.slug);
+    return;
+  }
+
   if (appState.downloadBtnState !== "idle") return;
   const btn = document.getElementById("oneClickDownloadBtn");
   appState.downloadBtnState = "preparing";
@@ -2312,17 +2423,18 @@ async function submitLoginFromModal() {
         };
         loggedIn = true;
       } else if (
-        (identifier.toLowerCase() === "admin" || identifier.toLowerCase() === "admin@openhub.dev" || identifier.toLowerCase() === "jisan") &&
-        (password === "Admin@12345" || password === "admin" || password === "123456" || password.length >= 4)
+        (identifier.toLowerCase() === "admin" || identifier.toLowerCase() === "admin@openhub.vn" || identifier.toLowerCase() === "admin@openhub.dev" || identifier.toLowerCase() === "jisan") &&
+        (password === "admin1109@#" || password === "Admin@12345" || password === "admin" || password === "123456" || password.length >= 4)
       ) {
-        // Tài khoản quản trị Admin Jisan Ahmed
+        // Tài khoản quản trị Admin với đầy đủ quyền hạn
         d = {
           user: {
-            id: "usr-admin-jisan",
+            id: "u-admin-root",
             username: "admin",
-            display_name: "Jisan Ahmed",
-            email: "jisan.ahmed@nexapanel.com",
-            role: "admin"
+            display_name: "Quản Trị Viên (Admin)",
+            email: "admin@openhub.vn",
+            role: "admin",
+            balance: 999999999
           },
           accessToken: "mock-jwt-admin-" + Date.now()
         };
@@ -2654,6 +2766,7 @@ function setAuthenticatedUser(user, token) {
     /* ignore */
   }
   updateAuthHeaderUi();
+  updateWalletUI();
 }
 
 function updateAuthHeaderUi() {
@@ -2692,6 +2805,7 @@ function logoutUser() {
     /* ignore */
   }
   updateAuthHeaderUi();
+  updateWalletUI();
   navigateView("explore");
   showToast("Bạn đã đăng xuất tài khoản an toàn.");
 }
@@ -3039,6 +3153,10 @@ function loadUploadScenarioPreset(preset) {
 }
 
 async function submitAndScanWizardProject() {
+  if (appState.currentUser?.role !== "admin") {
+    showToast("Chỉ Quản Trị Viên (Admin) mới có quyền đăng tải toàn bộ mã nguồn dự án mới lên hệ thống!", true);
+    return;
+  }
   goToWizardStep(4);
   const title = document.getElementById("upTitle").value.trim() || "Dự Án Kiểm Thử OpenHub Studio";
   const short_description =
@@ -3049,6 +3167,10 @@ async function submitAndScanWizardProject() {
   const version_number = document.getElementById("upVersion").value.trim() || "1.0.0";
   const quick_start_guide = document.getElementById("upQuickStart").value;
   const demo_url = document.getElementById("upDemoUrl").value;
+
+  const upPriceInput = document.getElementById("upPrice");
+  const upIsFreeCheck = document.getElementById("upIsFreeCheck");
+  const price = (upIsFreeCheck && upIsFreeCheck.checked) ? 0 : (Number(upPriceInput?.value) || 0);
 
   let entries = [];
   try {
@@ -3066,7 +3188,7 @@ async function submitAndScanWizardProject() {
       const createRes = await fetch("/api/v1/projects", {
         method: "POST",
         headers: apiHeaders(),
-        body: JSON.stringify({ title, short_description, category_id, license_type, tags, quick_start_guide, demo_url })
+        body: JSON.stringify({ title, short_description, category_id, license_type, tags, quick_start_guide, demo_url, price })
       });
       if (createRes.ok) {
         created = await createRes.json();
@@ -3082,7 +3204,46 @@ async function submitAndScanWizardProject() {
   }
 
   if (!created) {
-    created = { project: { id: "p-local-new", slug: "vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo" } };
+    const newSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || ("project-" + Date.now());
+    const newProject = {
+      id: "p-" + Date.now(),
+      slug: newSlug,
+      title,
+      short_description,
+      category_id,
+      category_name: (FALLBACK_CATEGORIES.find(c => c.id === category_id)?.name || "Web Application"),
+      license_type,
+      demo_url: demo_url || null,
+      tags,
+      price,
+      health_score: 98,
+      star_count: 1,
+      download_count: 0,
+      view_count: 1,
+      owner_username: appState.currentUser?.username || "admin",
+      version: version_number,
+      size_bytes: 15400000,
+      sha256_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      quick_start_guide,
+      latest_version: {
+        version_number,
+        changelog: `Phát hành v${version_number}`,
+        size_bytes: 15400000,
+        sha256_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      versions: [{ version_number, changelog: `Phát hành v${version_number}` }],
+      files: entries.map(e => ({ path: e.path, size: e.content ? e.content.length : 100, type: "file" }))
+    };
+
+    let customList = [];
+    try {
+      const raw = localStorage.getItem("openhub_custom_projects");
+      if (raw) customList = JSON.parse(raw);
+    } catch (e) {}
+    customList.unshift(newProject);
+    localStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+
+    created = { project: newProject };
     const preset = document.getElementById("upPresetSelect")?.value || "clean_with_junk";
     if (preset === "leaked_secret" || preset === "zip_bomb" || preset === "path_traversal" || preset === "readme_only") {
       scanOk = false;
@@ -3093,7 +3254,7 @@ async function submitAndScanWizardProject() {
     } else {
       scanOk = true;
       scanData = {
-        message: "Worker Quét An Toàn 4 Tầng đã xử lý thành công (Điểm an toàn Health Score: 98/100). Đã tự động dọn dẹp node_modules và xuất bản gói mã nguồn.",
+        message: `Worker Quét An Toàn 4 Tầng đã xử lý thành công (Điểm an toàn Health Score: 98/100). Đã định giá ${formatVND(price)}, lọc sạch node_modules và xuất bản gói mã nguồn.`,
         healthScore: 98,
         sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       };
@@ -3576,4 +3737,589 @@ function showToast(msg, isError = false) {
   window._toastTimer = setTimeout(() => {
     box.style.display = "none";
   }, 3200);
+}
+
+// =============================================================================
+// PHÂN HỆ VÍ ĐIỆN TỬ, NẠP TIỀN VIETQR MB BANK, BẢN QUYỀN & QUẢN TRỊ ADMIN
+// =============================================================================
+
+function formatVND(num) {
+  const n = Number(num) || 0;
+  if (n === 0) return "Miễn phí (Free)";
+  return n.toLocaleString("vi-VN") + " đ";
+}
+
+function getStoredWalletBalance(username) {
+  const u = (username || appState.currentUser?.username || "").toLowerCase();
+  if (!u) return 0;
+  if (u === "admin" || appState.currentUser?.role === "admin") {
+    const raw = localStorage.getItem("openhub_wallet_admin");
+    return raw !== null ? Number(raw) : 999999999;
+  }
+  const raw = localStorage.getItem("openhub_wallet_" + u);
+  return raw !== null ? Number(raw) : 0;
+}
+
+function setStoredWalletBalance(username, amount) {
+  const u = (username || appState.currentUser?.username || "").toLowerCase();
+  if (!u) return;
+  const num = Math.max(0, Number(amount) || 0);
+  localStorage.setItem("openhub_wallet_" + u, String(num));
+  updateWalletUI();
+}
+
+function updateWalletUI() {
+  const user = appState.currentUser;
+  const topBal = document.getElementById("topWalletBalance");
+  const sideBadge = document.getElementById("sideWalletBadge");
+  const modalBal = document.getElementById("walletModalBalanceDisplay");
+  const roleBadge = document.getElementById("walletUserRoleBadge");
+
+  const balance = user ? getStoredWalletBalance(user.username) : 0;
+  const formatted = user ? formatVND(balance) : "0 đ";
+
+  if (topBal) topBal.textContent = formatted;
+  if (sideBadge) sideBadge.textContent = formatted;
+  if (modalBal) modalBal.textContent = formatted;
+
+  if (roleBadge) {
+    if (user?.role === "admin") {
+      roleBadge.textContent = "Quản Trị Viên (Admin)";
+      roleBadge.className = "badge badge-primary";
+    } else if (user) {
+      roleBadge.textContent = "Thành viên";
+      roleBadge.className = "badge badge-success";
+    } else {
+      roleBadge.textContent = "Chưa đăng nhập";
+      roleBadge.className = "badge";
+    }
+  }
+
+  const reqs = getStoredTopupRequests();
+  const histCount = user?.role === "admin"
+    ? reqs.length
+    : reqs.filter((r) => r.username.toLowerCase() === (user?.username || "").toLowerCase()).length;
+  const histCountEl = document.getElementById("walletHistoryCount");
+  if (histCountEl) histCountEl.textContent = String(histCount);
+
+  const purchased = getStoredPurchasedProjects(user?.username);
+  const purCountEl = document.getElementById("walletPurchasedCount");
+  if (purCountEl) purCountEl.textContent = String(purchased.length);
+}
+
+function getStoredTopupRequests() {
+  try {
+    const raw = localStorage.getItem("openhub_topup_requests");
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [
+    {
+      id: "TOP-1001",
+      username: "tienle100",
+      amount: 100000,
+      note: "NAP TIENLE100 8492",
+      status: "approved",
+      createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+      approvedAt: new Date(Date.now() - 3600000).toISOString()
+    }
+  ];
+}
+
+function saveStoredTopupRequests(list) {
+  try {
+    localStorage.setItem("openhub_topup_requests", JSON.stringify(list));
+  } catch (e) {}
+  updateWalletUI();
+}
+
+let currentGeneratedTopupNote = "";
+
+function generateTopupNote(username) {
+  const u = (username || appState.currentUser?.username || "TIEN").toUpperCase().slice(0, 8);
+  const code = Math.floor(1000 + Math.random() * 9000);
+  return `NAP ${u} ${code}`;
+}
+
+function openWalletModal(initialTab = "topup") {
+  const modal = document.getElementById("walletModal");
+  if (!modal) return;
+  modal.style.display = "flex";
+
+  if (!currentGeneratedTopupNote) {
+    currentGeneratedTopupNote = generateTopupNote(appState.currentUser?.username);
+  }
+  const noteEl = document.getElementById("topupNoteDisplay");
+  if (noteEl) noteEl.textContent = currentGeneratedTopupNote;
+
+  updateWalletUI();
+  switchWalletTab(initialTab);
+}
+
+function closeWalletModal() {
+  const modal = document.getElementById("walletModal");
+  if (modal) modal.style.display = "none";
+}
+
+function switchWalletTab(tab) {
+  const tabs = ["topup", "history", "purchased"];
+  tabs.forEach((t) => {
+    const btn = document.getElementById(`walletTab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
+    const pane = document.getElementById(`walletPane${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    if (btn) btn.classList.toggle("active", t === tab);
+    if (pane) pane.style.display = t === tab ? "block" : "none";
+  });
+
+  if (tab === "history") renderTopupHistory();
+  if (tab === "purchased") renderPurchasedProjectsList();
+}
+
+function selectTopupPreset(amount) {
+  const input = document.getElementById("topupAmountInput");
+  if (input) input.value = String(amount);
+}
+
+function copyCurrentTopupNote() {
+  const note = document.getElementById("topupNoteDisplay")?.textContent?.trim() || currentGeneratedTopupNote;
+  copyDirectString(note);
+}
+
+function copyDirectString(str) {
+  if (navigator.clipboard) {
+    navigator.clipboard
+      .writeText(str)
+      .then(() => {
+        showToast(`Đã sao chép: "${str}"`);
+      })
+      .catch(() => {
+        fallbackCopyString(str);
+      });
+  } else {
+    fallbackCopyString(str);
+  }
+}
+
+function fallbackCopyString(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand("copy");
+    showToast(`Đã sao chép: "${text}"`);
+  } catch (e) {
+    showToast(`Vui lòng sao chép thủ công: ${text}`, true);
+  }
+  document.body.removeChild(ta);
+}
+
+function submitTopupRequest() {
+  if (!appState.currentUser) {
+    openAuthModal("login", () => openWalletModal("topup"), "Vui lòng đăng nhập để nạp tiền vào ví");
+    return;
+  }
+  const amountInput = document.getElementById("topupAmountInput");
+  const amount = Number(amountInput?.value) || 0;
+  if (amount < 10000) {
+    showToast("Số tiền nạp tối thiểu là 10.000 đ", true);
+    return;
+  }
+
+  const note = document.getElementById("topupNoteDisplay")?.textContent?.trim() || currentGeneratedTopupNote;
+  const newReq = {
+    id: "TOP-" + Math.floor(100000 + Math.random() * 900000),
+    username: appState.currentUser.username,
+    amount,
+    note,
+    status: "pending",
+    createdAt: new Date().toISOString()
+  };
+
+  const list = getStoredTopupRequests();
+  list.unshift(newReq);
+  saveStoredTopupRequests(list);
+
+  // Tạo mã mới cho lần nạp sau
+  currentGeneratedTopupNote = generateTopupNote(appState.currentUser.username);
+  const noteEl = document.getElementById("topupNoteDisplay");
+  if (noteEl) noteEl.textContent = currentGeneratedTopupNote;
+
+  showToast(`Đã tạo lệnh nạp ${formatVND(amount)} thành công! Admin sẽ kiểm tra và duyệt.`);
+  switchWalletTab("history");
+}
+
+function renderTopupHistory() {
+  const wrap = document.getElementById("topupHistoryList");
+  if (!wrap) return;
+  const list = getStoredTopupRequests();
+  const isAdmin = appState.currentUser?.role === "admin";
+  const currentUsername = (appState.currentUser?.username || "").toLowerCase();
+
+  const filtered = isAdmin ? list : list.filter((r) => r.username.toLowerCase() === currentUsername);
+
+  if (filtered.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-secondary);">Chưa có lệnh nạp tiền nào. Hãy quét mã VietQR MB Bank ở Tab 1 để nạp tiền!</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <table class="data-table" style="width:100%;font-size:0.83rem;">
+      <thead>
+        <tr>
+          <th>Mã GD</th>
+          ${isAdmin ? "<th>Người dùng</th>" : ""}
+          <th>Số tiền</th>
+          <th>Nội dung ghi chú</th>
+          <th>Thời gian</th>
+          <th>Trạng thái</th>
+          ${isAdmin ? "<th>Thao tác Admin</th>" : ""}
+        </tr>
+      </thead>
+      <tbody>
+        ${filtered
+          .map((r) => {
+            let statusBadge = `<span class="badge" style="background:rgba(245,158,11,0.15);color:#F59E0B;">⏳ Chờ duyệt</span>`;
+            if (r.status === "approved") {
+              statusBadge = `<span class="badge badge-success">✅ Thành công</span>`;
+            } else if (r.status === "rejected") {
+              statusBadge = `<span class="badge badge-danger">❌ Từ chối</span>`;
+            }
+            return `
+            <tr>
+              <td><code style="font-size:0.75rem;">${escapeHtml(r.id)}</code></td>
+              ${isAdmin ? `<td><strong>@${escapeHtml(r.username)}</strong></td>` : ""}
+              <td><strong style="color:#10B981;font-family:var(--font-mono);">${formatVND(r.amount)}</strong></td>
+              <td><span style="font-family:var(--font-mono);font-size:0.78rem;color:#C4B5FD;">${escapeHtml(r.note)}</span></td>
+              <td style="font-size:0.74rem;color:var(--text-secondary);">${new Date(r.createdAt).toLocaleString("vi-VN")}</td>
+              <td>${statusBadge}</td>
+              ${
+                isAdmin
+                  ? `
+                <td>
+                  ${
+                    r.status === "pending"
+                      ? `
+                    <div style="display:flex;gap:4px;">
+                      <button type="button" class="btn btn-primary btn-sm" style="padding:2px 8px;font-size:0.72rem;" onclick="approveTopupRequest('${escapeHtml(r.id)}')">✅ Duyệt</button>
+                      <button type="button" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.72rem;color:#EF4444;" onclick="rejectTopupRequest('${escapeHtml(r.id)}')">❌ Hủy</button>
+                    </div>
+                  `
+                      : `<span style="font-size:0.72rem;color:var(--text-secondary);">Đã xong</span>`
+                  }
+                </td>
+              `
+                  : ""
+              }
+            </tr>
+          `;
+          })
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function approveTopupRequest(requestId) {
+  if (appState.currentUser?.role !== "admin") {
+    showToast("Chỉ Quản Trị Viên (Admin) mới có quyền duyệt nạp tiền!", true);
+    return;
+  }
+  const list = getStoredTopupRequests();
+  const req = list.find((r) => r.id === requestId);
+  if (!req) return;
+  req.status = "approved";
+  req.approvedAt = new Date().toISOString();
+  saveStoredTopupRequests(list);
+
+  const currentBal = getStoredWalletBalance(req.username);
+  setStoredWalletBalance(req.username, currentBal + req.amount);
+
+  showToast(`✅ Đã duyệt cộng ${formatVND(req.amount)} cho tài khoản @${req.username}!`);
+  renderTopupHistory();
+}
+
+function rejectTopupRequest(requestId) {
+  if (appState.currentUser?.role !== "admin") {
+    showToast("Chỉ Quản Trị Viên (Admin) mới có quyền từ chối nạp tiền!", true);
+    return;
+  }
+  const list = getStoredTopupRequests();
+  const req = list.find((r) => r.id === requestId);
+  if (!req) return;
+  req.status = "rejected";
+  saveStoredTopupRequests(list);
+
+  showToast(`❌ Đã từ chối lệnh nạp ${req.id} của @${req.username}.`, true);
+  renderTopupHistory();
+}
+
+function getStoredPurchasedProjects(username) {
+  const u = (username || appState.currentUser?.username || "").toLowerCase();
+  if (!u) return [];
+  try {
+    const raw = localStorage.getItem("openhub_purchased_" + u);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+}
+
+function saveStoredPurchasedProjects(username, list) {
+  const u = (username || appState.currentUser?.username || "").toLowerCase();
+  if (!u) return;
+  try {
+    localStorage.setItem("openhub_purchased_" + u, JSON.stringify(list));
+  } catch (e) {}
+  updateWalletUI();
+}
+
+function isProjectPurchased(projectId, username) {
+  const u = (username || appState.currentUser?.username || "").toLowerCase();
+  if (!u) return false;
+  if (appState.currentUser?.role === "admin") return true;
+  const list = getStoredPurchasedProjects(u);
+  return list.some((p) => p.id === projectId || p.projectId === projectId);
+}
+
+function renderPurchasedProjectsList() {
+  const wrap = document.getElementById("purchasedProjectsList");
+  if (!wrap) return;
+  const username = appState.currentUser?.username;
+  if (!username) {
+    wrap.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-secondary);">Vui lòng đăng nhập để xem danh sách dự án đã mua.</div>`;
+    return;
+  }
+  const list = getStoredPurchasedProjects(username);
+  if (list.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-secondary);">Bạn chưa mua dự án nào. Các dự án sau khi mua sẽ lưu bản quyền vĩnh viễn tại đây để bạn tải lại bất cứ khi nào.</div>`;
+    return;
+  }
+  wrap.innerHTML = `
+    <table class="data-table" style="width:100%;font-size:0.83rem;">
+      <thead>
+        <tr>
+          <th>Tên dự án</th>
+          <th>Giá thanh toán</th>
+          <th>Thời gian mua</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${list
+          .map(
+            (p) => `
+          <tr>
+            <td><strong>${escapeHtml(p.title)}</strong></td>
+            <td><strong style="color:#10B981;font-family:var(--font-mono);">${formatVND(p.price)}</strong></td>
+            <td style="font-size:0.74rem;color:var(--text-secondary);">${new Date(p.purchasedAt || Date.now()).toLocaleDateString("vi-VN")}</td>
+            <td>
+              <button type="button" class="btn btn-primary btn-sm" onclick="downloadProjectBundleDirectly('${escapeHtml(p.slug)}')">
+                📥 Tải mã nguồn (.ZIP)
+              </button>
+            </td>
+          </tr>
+        `
+          )
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function handleBuyOrDownloadProject(projectId, slug) {
+  if (!appState.currentUser) {
+    openAuthModal("login", () => handleBuyOrDownloadProject(projectId, slug), "Vui lòng đăng nhập để mua hoặc tải dự án này");
+    return;
+  }
+
+  const proj = getProjectByIdOrSlug(projectId, slug);
+  if (!proj) {
+    showToast("Không tìm thấy dự án!", true);
+    return;
+  }
+
+  const price = Number(proj.price) || 0;
+  const isFree = price === 0;
+  const alreadyPurchased = isProjectPurchased(proj.id, appState.currentUser.username);
+
+  if (isFree || alreadyPurchased || appState.currentUser.role === "admin") {
+    if (appState.currentProject && appState.currentProject.id === proj.id) {
+      handleOneClickDownload();
+    } else {
+      openProjectDetail(proj.slug);
+    }
+    return;
+  }
+
+  const balance = getStoredWalletBalance(appState.currentUser.username);
+  if (balance < price) {
+    const diff = price - balance;
+    if (
+      confirm(
+        `Số dư ví của bạn không đủ!\n• Hiện có: ${formatVND(balance)}\n• Giá dự án: ${formatVND(price)}\n• Cần nạp thêm: ${formatVND(diff)}\n\nBạn có muốn mở trang Nạp tiền qua VietQR MB Bank (STK: 7897895757) ngay bây giờ không?`
+      )
+    ) {
+      openWalletModal("topup");
+    }
+    return;
+  }
+
+  if (
+    confirm(
+      `Xác nhận mua dự án "${proj.title}" với giá ${formatVND(price)}?\nSố dư ví sẽ bị trừ từ ${formatVND(balance)} còn ${formatVND(balance - price)}.`
+    )
+  ) {
+    setStoredWalletBalance(appState.currentUser.username, balance - price);
+
+    const list = getStoredPurchasedProjects(appState.currentUser.username);
+    list.unshift({
+      id: proj.id,
+      projectId: proj.id,
+      slug: proj.slug,
+      title: proj.title,
+      price: price,
+      purchasedAt: new Date().toISOString()
+    });
+    saveStoredPurchasedProjects(appState.currentUser.username, list);
+
+    showToast(`🎉 Mua bản quyền dự án "${proj.title}" thành công!`);
+
+    if (appState.currentProject && appState.currentProject.id === proj.id) {
+      openProjectDetail(proj.slug);
+    } else {
+      downloadProjectBundleDirectly(proj.slug);
+    }
+  }
+}
+
+function downloadProjectBundleDirectly(slug) {
+  const d = {
+    signedUrl: `#download-${slug}.zip`,
+    filename: `${slug}-full-source.zip`,
+    sha256_checksum: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  };
+  showToast(`Đang tải xuống gói mã nguồn: ${d.filename}`);
+}
+
+function openEditProjectModalById(id) {
+  const proj = getProjectByIdOrSlug(id, null);
+  if (!proj) return;
+  appState.currentProject = proj;
+  openEditCurrentProjectModal();
+}
+
+function openEditCurrentProjectModal() {
+  if (appState.currentUser?.role !== "admin") {
+    showToast("Chỉ Quản Trị Viên (Admin) mới có quyền chỉnh sửa dự án!", true);
+    return;
+  }
+  const p = appState.currentProject;
+  if (!p) return;
+  document.getElementById("editProjectId").value = p.id;
+  document.getElementById("editProjectTitle").value = p.title || "";
+  document.getElementById("editProjectDesc").value = p.short_description || "";
+  const price = Number(p.price) || 0;
+  document.getElementById("editProjectPrice").value = String(price);
+  document.getElementById("editProjectIsFree").checked = price === 0;
+
+  document.getElementById("editProjectModal").style.display = "flex";
+}
+
+function closeEditProjectModal() {
+  const m = document.getElementById("editProjectModal");
+  if (m) m.style.display = "none";
+}
+
+function handleEditProjectFreeToggle(isFree) {
+  const priceEl = document.getElementById("editProjectPrice");
+  if (isFree) {
+    priceEl.value = "0";
+  } else if (priceEl.value === "0") {
+    priceEl.value = "50000";
+  }
+}
+
+function saveEditProject() {
+  if (appState.currentUser?.role !== "admin") {
+    showToast("Chỉ Quản Trị Viên (Admin) mới có quyền lưu chỉnh sửa!", true);
+    return;
+  }
+  const id = document.getElementById("editProjectId").value;
+  const title = document.getElementById("editProjectTitle").value.trim();
+  const desc = document.getElementById("editProjectDesc").value.trim();
+  const isFree = document.getElementById("editProjectIsFree").checked;
+  const price = isFree ? 0 : Number(document.getElementById("editProjectPrice").value) || 0;
+
+  if (!title) {
+    showToast("Tên dự án không được để trống", true);
+    return;
+  }
+
+  const proj = OFFLINE_PROJECTS.find((p) => p.id === id);
+  if (proj) {
+    proj.title = title;
+    proj.short_description = desc;
+    proj.price = price;
+  }
+
+  let customList = [];
+  try {
+    const raw = localStorage.getItem("openhub_custom_projects");
+    if (raw) customList = JSON.parse(raw);
+  } catch (e) {}
+
+  const cIdx = customList.findIndex((p) => p.id === id);
+  if (cIdx >= 0) {
+    customList[cIdx] = { ...customList[cIdx], title, short_description: desc, price };
+  } else {
+    customList.push({ id, title, short_description: desc, price });
+  }
+  localStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+
+  closeEditProjectModal();
+  showToast(`✅ Đã cập nhật dự án: ${title} (Giá: ${formatVND(price)})`);
+
+  if (appState.currentProject && appState.currentProject.id === id) {
+    appState.currentProject.title = title;
+    appState.currentProject.short_description = desc;
+    appState.currentProject.price = price;
+    openProjectDetail(appState.currentProject.slug);
+  } else {
+    triggerExploreSearch();
+  }
+}
+
+function deleteCurrentProjectFromAdmin() {
+  if (appState.currentUser?.role !== "admin") {
+    showToast("Chỉ Quản Trị Viên (Admin) mới có quyền xóa dự án!", true);
+    return;
+  }
+  const p = appState.currentProject;
+  if (!p) return;
+  if (!confirm(`Bạn có chắc chắn muốn xóa dự án "${p.title}" khỏi website không?\nHành động này không thể hoàn tác.`)) {
+    return;
+  }
+
+  deleteProjectFromStorage(p.id);
+  closeEditProjectModal();
+  showToast(`🗑️ Đã xóa dự án "${p.title}" thành công.`);
+  navigateView("explore");
+}
+
+function deleteProjectFromStorage(id) {
+  const deleted = getDeletedProjectIds();
+  if (!deleted.includes(id)) {
+    deleted.push(id);
+    localStorage.setItem("openhub_deleted_projects", JSON.stringify(deleted));
+  }
+  const idx = OFFLINE_PROJECTS.findIndex((p) => p.id === id);
+  if (idx >= 0) OFFLINE_PROJECTS.splice(idx, 1);
+}
+
+function quickFillAdminLogin() {
+  const userIn = document.getElementById("authLoginIdentifier");
+  const pwdIn = document.getElementById("authLoginPassword");
+  if (userIn) userIn.value = "admin";
+  if (pwdIn) pwdIn.value = "admin1109@#";
+  submitLoginFromModal();
 }
