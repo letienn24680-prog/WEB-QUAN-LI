@@ -3374,7 +3374,7 @@ function addCurrentProjectToBundle() {
 
 function updateBundleBadgeCount() {
   const len = appState.bundleCart.length;
-  const sEl = document.getElementById("sidebarBundleCount");
+  const sEl = document.getElementById("sidebarBundleCount") || document.getElementById("sidebarBundleBadge");
   const tEl = document.getElementById("topBundleCount");
   const mEl = document.getElementById("mobileBottomBundleCount");
   const dEl = document.getElementById("detailAddBundleBtn");

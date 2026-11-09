@@ -383,11 +383,16 @@ h3 {
   z-index: 30;
 }
 
+.show-xs {
+  display: none !important;
+}
+
 .topbar-left {
   display: flex;
   align-items: center;
   gap: 12px;
   flex: 1;
+  min-width: 0;
   max-width: 520px;
 }
 
@@ -403,6 +408,8 @@ h3 {
   font-size: 0.84rem;
   cursor: pointer;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
   transition: all 150ms ease;
 }
 
@@ -413,6 +420,7 @@ h3 {
 
 .cmd-trigger-text {
   flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -432,6 +440,7 @@ h3 {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .top-icon-btn {
@@ -449,6 +458,27 @@ h3 {
   cursor: pointer;
   transition: all 150ms ease;
   white-space: nowrap;
+}
+
+.top-cart-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cart-count-pill {
+  background: rgba(139, 92, 246, 0.22);
+  color: #A78BFA;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.3;
 }
 
 .top-icon-btn:hover {
@@ -2208,13 +2238,81 @@ tr:hover td {
 
 /* Cân bằng trên Điện thoại nhỏ (< 768px) */
 @media (max-width: 768px) {
+  .show-xs {
+    display: inline !important;
+  }
+
   .container {
     padding: 14px 12px 80px; /* Safe padding for bottom nav */
   }
 
   .topbar {
-    padding: 0 12px;
+    padding: 0 10px;
     height: 56px;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .topbar-left {
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .command-search-trigger {
+    padding: 6px 10px;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .cmd-trigger-text {
+    font-size: 0.78rem;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .top-cart-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+  }
+
+  .top-cart-btn .cart-count-pill {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    background: var(--purple-primary);
+    color: #ffffff;
+    border: 2px solid var(--bg-surface);
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #topGuestAuthButtons {
+    gap: 0;
+    flex-shrink: 0;
+  }
+
+  #topGuestAuthButtons .btn {
+    padding: 0 10px;
+    height: 34px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    border-radius: var(--radius-sm);
   }
 
   .hide-xs {
@@ -2390,15 +2488,18 @@ tr:hover td {
 @media (max-width: 480px) {
   .topbar {
     padding: 0 8px;
-    gap: 8px;
+    gap: 6px;
   }
 
   .topbar-left {
-    gap: 8px;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
   }
 
   .topbar-actions {
-    gap: 6px;
+    gap: 4px;
+    flex-shrink: 0;
   }
 
   .kpi-sparkline-grid {
