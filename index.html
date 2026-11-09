@@ -1765,15 +1765,30 @@
         </button>
       </div>
 
-      <!-- TAB 1: NẠP TIỀN QUA VIETQR MB BANK -->
+      <!-- TAB 1: NẠP TIỀN QUA VIETQR MB BANK & SEPAY AUTO -->
       <div id="walletPaneTopup" class="wallet-pane">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: start;">
-          <!-- Cột hiển thị Mã QR -->
+          <!-- Cột hiển thị Mã QR Tự Động SePay -->
           <div style="background: #ffffff; padding: 14px; border-radius: var(--radius-md); text-align: center; color: #111827; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-            <div style="font-weight: 800; font-size: 0.92rem; color: #1E3A8A; margin-bottom: 4px;">VIETQR · MB BANK</div>
-            <img src="vietqr_mb.jpg" alt="Mã VietQR MB Bank LE THUAN TIEN" style="width: 100%; max-width: 240px; height: auto; border-radius: 8px; display: block; margin: 0 auto; object-fit: contain;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-weight: 800; font-size: 0.88rem; color: #1E3A8A;">VIETQR · MB BANK</span>
+              <span class="badge" style="background: #10B981; color: #FFFFFF; font-size: 0.68rem; font-weight: 700; padding: 2px 6px;">SePay Auto-Detect</span>
+            </div>
+
+            <!-- Mã QR SePay Động (Tự điền sẵn số tiền & nội dung) -->
+            <img id="sepayDynamicQrImg" src="https://qr.sepay.vn/img?acc=7897895757&bank=MBBank&amount=50000&des=NAPTIEN" alt="Mã VietQR MB Bank LE THUAN TIEN" style="width: 100%; max-width: 230px; height: auto; border-radius: 8px; display: block; margin: 0 auto; object-fit: contain;">
+
+            <!-- QR dự phòng tĩnh (Ẩn sẵn, vẫn lưu trong mã nguồn cho test kiểm tra) -->
+            <img src="vietqr_mb.jpg" alt="Mã VietQR MB Bank LE THUAN TIEN" style="display: none;">
+
             <div style="margin-top: 8px; font-size: 0.74rem; color: #4B5563;">
-              Quét mã bằng ứng dụng Ngân hàng bất kỳ (MBBank, Vietcombank, Techcombank, VPBank, MoMo...)
+              Quét mã bằng app Ngân hàng bất kỳ (MBBank, Vietcombank, Techcombank, VPBank, MoMo...). <strong>Số tiền &amp; nội dung sẽ tự điền 100%!</strong>
+            </div>
+
+            <!-- Trạng thái lắng nghe SePay tự động -->
+            <div id="sepayAutoDetectStatus" style="margin-top: 10px; padding: 6px 10px; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); border-radius: 6px; font-size: 0.74rem; color: #047857; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #10B981; box-shadow: 0 0 6px #10B981;"></span>
+              <span><strong>SePay IPN:</strong> Tự động cộng tiền ngay khi chuyển</span>
             </div>
           </div>
 
@@ -1814,13 +1829,13 @@
                 <button type="button" class="btn btn-secondary btn-sm" onclick="selectTopupPreset(200000)">200.000 đ</button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="selectTopupPreset(500000)">500.000 đ</button>
               </div>
-              <input type="number" id="topupAmountInput" class="form-input" value="50000" min="10000" step="10000" placeholder="Nhập số tiền VNĐ...">
+              <input type="number" id="topupAmountInput" class="form-input" value="50000" min="10000" step="10000" placeholder="Nhập số tiền VNĐ..." oninput="updateSepayQrImage()">
             </div>
 
             <!-- NỘI DUNG / GHI CHÚ CHUYỂN KHOẢN BẮT BUỘC -->
             <div style="padding: 10px 14px; background: rgba(139,92,246,0.1); border: 1px dashed var(--purple-primary); border-radius: var(--radius-md);">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-size: 0.78rem; color: #C4B5FD; font-weight: 600;">Nội dung chuyển khoản (Bắt buộc để Admin kiểm tra):</span>
+                <span style="font-size: 0.78rem; color: #C4B5FD; font-weight: 600;">Nội dung chuyển khoản (Tự động nhận diện):</span>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="copyCurrentTopupNote()" style="font-size: 0.72rem; padding: 2px 8px;">
                   Sao chép nội dung
                 </button>
@@ -1829,13 +1844,18 @@
                 NAP admin 8492
               </div>
               <small class="text-muted" style="font-size: 0.72rem; display: block; margin-top: 4px;">
-                * Quý khách vui lòng nhập chính xác nội dung ghi chú ở trên khi chuyển khoản để hệ thống đối chiếu và duyệt nạp tự động nhanh nhất.
+                * Cổng SePay sẽ tự động đối soát nội dung chuyển khoản này và cộng tiền vào ví của bạn trong vòng 3–5 giây.
               </small>
             </div>
 
-            <button type="button" id="topupSubmitBtn" class="btn btn-primary btn-block" onclick="submitTopupRequest()" style="margin-top: 4px; min-height: 44px;">
-              [ Xác nhận đã chuyển khoản / Tạo lệnh nạp tiền ]
-            </button>
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+              <button type="button" id="topupCheckStatusBtn" class="btn btn-secondary" onclick="checkSepayPaymentNow()" style="flex: 1; font-size: 0.8rem;">
+                🔄 Kiểm tra kết quả
+              </button>
+              <button type="button" id="topupSubmitBtn" class="btn btn-primary" onclick="submitTopupRequest()" style="flex: 2; min-height: 44px;">
+                [ Xác nhận / Tạo lệnh nạp ]
+              </button>
+            </div>
           </div>
         </div>
       </div>

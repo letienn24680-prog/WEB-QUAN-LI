@@ -568,6 +568,14 @@ async function runAllTests() {
     assert.ok(htmlText.includes("cloudStorageUsedDisplay") && jsText.includes("updateCloudStorageUsage"), "Phải có quản lý dung lượng Cloud Storage 5 GB");
     assert.ok(htmlText.includes("topupSearchInput") && htmlText.includes("purchasedSearchInput"), "Phải có ô tra cứu chi tiết nạp tiền & dự án đã mua");
     assert.ok(htmlText.includes("notifModal") && jsText.includes("addSystemNotification"), "Phải có hệ thống thông báo logic");
+
+    // 7. Kiểm tra Tích hợp Cổng thanh toán SePay tự động & Webhook IPN
+    assert.ok(fs.existsSync(path.join(__dirname, "api", "sepay", "ipn.js")), "api/sepay/ipn.js: Phải có Vercel Serverless Function SePay IPN Webhook");
+    assert.ok(jsText.includes("updateSepayQrImage"), "app.js: Phải có hàm updateSepayQrImage");
+    assert.ok(jsText.includes("startSepayPaymentPolling"), "app.js: Phải có hàm startSepayPaymentPolling");
+    assert.ok(jsText.includes("checkSepayPaymentNow"), "app.js: Phải có hàm checkSepayPaymentNow");
+    assert.ok(jsText.includes("handleSepayPaymentSuccess"), "app.js: Phải có hàm handleSepayPaymentSuccess");
+    assert.ok(htmlText.includes("sepayDynamicQrImg"), "index.html: Phải có ảnh QR động SePay");
   });
 
   console.log("\n======================================================================");

@@ -456,6 +456,33 @@ function createAppServer(platformInstance) {
         return sendJson(res, modRes.statusCode, modRes);
       }
 
+      if (pathname === "/api/sepay/ipn") {
+        const sepayHandler = require("./api/sepay/ipn");
+        let body = {};
+        if (req.method === "POST") {
+          try {
+            const { json } = await readRawAndJsonBody(req);
+            body = json;
+          } catch (e) {
+            body = {};
+          }
+        }
+        const customReq = {
+          method: req.method,
+          query: Object.fromEntries(parsedUrl.searchParams.entries()),
+          body,
+          headers: req.headers
+        };
+        const customRes = {
+          setHeader: (k, v) => res.setHeader(k, v),
+          status: (code) => ({
+            json: (data) => sendJson(res, code, data),
+            end: () => res.end()
+          })
+        };
+        return sepayHandler(customReq, customRes);
+      }
+
       if (req.method === "GET" && pathname === "/api/v1/image-proxy") {
         const targetUrl = parsedUrl.searchParams.get("url") || "";
         const safeLabel = escapeHtml(targetUrl.slice(0, 65));

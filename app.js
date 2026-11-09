@@ -3944,11 +3944,137 @@ function saveStoredTopupRequests(list) {
 }
 
 let currentGeneratedTopupNote = "";
+let sepayPollingInterval = null;
+const sepayProcessedTxIds = new Set();
 
 function generateTopupNote(username) {
   const u = (username || appState.currentUser?.username || "TIEN").toUpperCase().slice(0, 8);
   const code = Math.floor(1000 + Math.random() * 9000);
   return `NAP ${u} ${code}`;
+}
+
+function updateSepayQrImage() {
+  const qrImg = document.getElementById("sepayDynamicQrImg");
+  if (!qrImg) return;
+  const amountInput = document.getElementById("topupAmountInput");
+  const amount = Number(amountInput?.value) || 50000;
+  const note = document.getElementById("topupNoteDisplay")?.textContent?.trim() || currentGeneratedTopupNote || "NAPTIEN";
+  const acc = "7897895757";
+  const bank = "MBBank";
+  const url = `https://qr.sepay.vn/img?acc=${acc}&bank=${bank}&amount=${amount}&des=${encodeURIComponent(note)}`;
+  qrImg.src = url;
+}
+
+function startSepayPaymentPolling() {
+  stopSepayPaymentPolling();
+  const note = document.getElementById("topupNoteDisplay")?.textContent?.trim() || currentGeneratedTopupNote;
+  if (!note) return;
+
+  const statusEl = document.getElementById("sepayAutoDetectStatus");
+  if (statusEl) {
+    statusEl.innerHTML = `<span style="width: 8px; height: 8px; border-radius: 50%; background: #10B981; box-shadow: 0 0 6px #10B981;"></span><span><strong>SePay IPN:</strong> Tự động cộng tiền ngay khi chuyển</span>`;
+  }
+
+  sepayPollingInterval = setInterval(() => {
+    checkSepayPaymentNow(true);
+  }, 4000);
+}
+
+function stopSepayPaymentPolling() {
+  if (sepayPollingInterval) {
+    clearInterval(sepayPollingInterval);
+    sepayPollingInterval = null;
+  }
+}
+
+async function checkSepayPaymentNow(isSilent = false) {
+  const note = document.getElementById("topupNoteDisplay")?.textContent?.trim() || currentGeneratedTopupNote;
+  if (!note) return;
+
+  const statusEl = document.getElementById("sepayAutoDetectStatus");
+  if (!isSilent && statusEl) {
+    statusEl.innerHTML = `<span>⏳ Đang kiểm tra giao dịch với SePay IPN...</span>`;
+  }
+
+  try {
+    const res = await fetch(`/api/sepay/ipn?check=${encodeURIComponent(note)}`);
+    if (!res.ok) {
+      if (!isSilent) showToast("Chưa nhận được giao dịch. Vui lòng thử lại sau khi chuyển tiền.", true);
+      return;
+    }
+    const data = await res.json();
+    if (data.paid && data.transaction) {
+      handleSepayPaymentSuccess(data.transaction);
+    } else if (!isSilent) {
+      showToast("Chưa phát hiện giao dịch cho mã: " + note + ". Vui lòng chờ 5-10s rồi bấm lại.", true);
+      if (statusEl) {
+        statusEl.innerHTML = `<span style="width: 8px; height: 8px; border-radius: 50%; background: #F59E0B;"></span><span>Chưa phát hiện tiền về cho mã <strong>${note}</strong>. Đang tiếp tục lắng nghe...</span>`;
+      }
+    }
+  } catch (err) {
+    if (!isSilent) showToast("Không thể kết nối đến máy chủ kiểm tra.", true);
+  }
+}
+
+function handleSepayPaymentSuccess(tx) {
+  if (sepayProcessedTxIds.has(tx.id)) return;
+  sepayProcessedTxIds.add(tx.id);
+  stopSepayPaymentPolling();
+
+  const user = appState.currentUser;
+  const username = user ? user.username : (tx.content.match(/NAP\s+([A-Za-z0-9_]+)/i)?.[1] || "user");
+  const amount = Number(tx.amount) || 0;
+
+  // Cộng tiền vào ví
+  const currentBal = getStoredWalletBalance(username);
+  setStoredWalletBalance(username, currentBal + amount);
+
+  // Cập nhật trạng thái topup requests nếu có
+  const list = getStoredTopupRequests();
+  const existingReq = list.find((r) => r.note && tx.content && tx.content.toLowerCase().includes(r.note.toLowerCase()));
+  if (existingReq) {
+    existingReq.status = "approved";
+    existingReq.approvedAt = new Date().toISOString();
+    existingReq.sepayTxId = tx.id;
+  } else {
+    list.unshift({
+      id: "SEPAY-" + (tx.id || Date.now()),
+      username,
+      amount,
+      note: tx.content || currentGeneratedTopupNote,
+      status: "approved",
+      createdAt: new Date().toISOString(),
+      approvedAt: new Date().toISOString(),
+      gateway: "SePay MBBank"
+    });
+  }
+  saveStoredTopupRequests(list);
+
+  // Hiển thị trạng thái thành công
+  const statusEl = document.getElementById("sepayAutoDetectStatus");
+  if (statusEl) {
+    statusEl.innerHTML = `<span>🎉 <strong>ĐÃ NHẬN TIỀN THÀNH CÔNG!</strong> +${formatVND(amount)}</span>`;
+    statusEl.style.background = "rgba(16,185,129,0.2)";
+    statusEl.style.borderColor = "#10B981";
+  }
+
+  addSystemNotification({
+    title: "Nạp tiền tự động thành công!",
+    message: `Hệ thống SePay đã ghi nhận giao dịch +${formatVND(amount)} vào ví thành công.`,
+    type: "success"
+  });
+
+  showToast(`🎉 Thanh toán thành công! Đã nạp ${formatVND(amount)} vào ví của bạn.`);
+
+  // Đổi mã ghi chú mới cho lần sau
+  currentGeneratedTopupNote = generateTopupNote(username);
+  const noteEl = document.getElementById("topupNoteDisplay");
+  if (noteEl) noteEl.textContent = currentGeneratedTopupNote;
+  updateSepayQrImage();
+
+  setTimeout(() => {
+    switchWalletTab("history");
+  }, 1800);
 }
 
 function openWalletModal(initialTab = "topup") {
@@ -3963,10 +4089,12 @@ function openWalletModal(initialTab = "topup") {
   if (noteEl) noteEl.textContent = currentGeneratedTopupNote;
 
   updateWalletUI();
+  updateSepayQrImage();
   switchWalletTab(initialTab);
 }
 
 function closeWalletModal() {
+  stopSepayPaymentPolling();
   const modal = document.getElementById("walletModal");
   if (modal) modal.style.display = "none";
 }
@@ -3980,6 +4108,13 @@ function switchWalletTab(tab) {
     if (pane) pane.style.display = t === tab ? "block" : "none";
   });
 
+  if (tab === "topup") {
+    updateSepayQrImage();
+    startSepayPaymentPolling();
+  } else {
+    stopSepayPaymentPolling();
+  }
+
   if (tab === "history") renderTopupHistory();
   if (tab === "purchased") renderPurchasedProjectsList();
 }
@@ -3987,6 +4122,7 @@ function switchWalletTab(tab) {
 function selectTopupPreset(amount) {
   const input = document.getElementById("topupAmountInput");
   if (input) input.value = String(amount);
+  updateSepayQrImage();
 }
 
 function copyCurrentTopupNote() {
