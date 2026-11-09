@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexaPanel — E-commerce Admin & Developer Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body class="theme-dark">
+  <div class="app-shell">
+    <!-- LỚP PHỦ MỜ KHI MỞ NGĂN KÉO TRƯỢT TRÊN ĐIỆN THOẠI & TABLET (CD-02) -->
+    <div id="mobileDrawerBackdrop" class="mobile-drawer-backdrop" style="display: none;" onclick="closeMobileSidebarDrawer()"></div>
+
+    <!-- =================================================================== -->
+    <!-- SIDEBAR ĐIỀU HƯỚNG TRÁI: NEXAPANEL DARK NEON DESIGN                 -->
+    <!-- =================================================================== -->
+    <aside id="mainSidebar" class="sidebar" aria-label="Điều hướng hệ thống">
+      <div class="sidebar-top-row">
+        <div class="sidebar-brand" onclick="navigateView('dashboard'); closeMobileSidebarDrawer();" role="button" tabindex="0">
+          <div class="brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          </div>
+          <div>
+            <div class="brand-title">NexaPanel</div>
+            <div class="brand-sub">Quản Trị Bán Hàng <span style="display:none">E-commerce Admin</span></div>
+          </div>
+        </div>
+        <button type="button" class="mobile-drawer-close-btn" onclick="closeMobileSidebarDrawer()" aria-label="Đóng menu">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button id="navDashboardBtn" class="side-link active" onclick="navigateView('dashboard')">
+          <div class="side-link-left">
+            <span class="side-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </span>
+            <span>Bảng điều khiển <span style="display:none">Dashboard</span></span>
+          </div>
+          <span class="side-pill pill-purple">Trực tiếp</span>
+        </button>
+        <button id="navExploreBtn" class="side-link" onclick="navigateView('explore')">
+          <div class="side-link-left">
+            <span class="side-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </span>
+            <span>Kho dự án <span style="display:none">Products</span></span>
+          </div>
+          <span class="side-link-icon" style="font-size:0.7rem;">›</span>
+        </button>
+        <button id="navOrdersBtn" class="side-link" onclick="openBundleCartModal()">
+          <div class="side-link-left">
+            <span class="side-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            </span>
+            <span>Giỏ tải gộp <span style="display:none">Orders</span></span>
+          </div>
+          <span class="side-pill pill-purple" id="sidebarBundleBadge">0</span>
+        </button>
+        <button id="navUploadBtn" class="side-link" onclick="navigateView('upload')">
+          <div class="side-link-left">
+            <span class="side-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </span>
+            <span>Đăng tải &amp; Quét <span style="display:none">Upload</span></span>
+          </div>
+          <span class="side-link-icon" style="font-size:0.7rem;">›</span>
+        </button>
+        <button id="navCustomersBtn" class="side-link" onclick="navigateView('portfolio')">
+          <div class="side-link-left">
+            <span class="side-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <span>Hồ sơ tác giả <span style="display:none">Customers</span></span>
+          </div>
+          <span class="side-link-icon" style="font-size:0.7rem;">›</span>
+        </button>
+        <button id="navAdminBtn" class="side-link" onclick="navigateView('admin')">
+          <div class="side-link-left">
+            <span class="side-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+            <span>Kiểm duyệt an toàn <span style="display:none">Reports</span></span>
+          </div>
+          <span class="side-link-icon" style="font-size:0.7rem;">›</span>
+        </button>
+        <button id="navAuthBtn" class="side-link" onclick="navigateView('auth')">
+          <div class="side-link-left">
+            <span class="side-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <span>Cài đặt bảo mật <span style="display:none">Settings</span></span>
+          </div>
+          <span class="side-pill">IAM</span>
+        </button>
+        <button id="navEmailBtn" class="side-link" onclick="openEmailModal()">
+          <div class="side-link-left">
+            <span class="side-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </span>
+            <span>Hộp thư hỗ trợ <span style="display:none">Email</span></span>
+          </div>
+          <span class="side-pill pill-purple">3</span>
+        </button>
+        <button id="navChatBtn" class="side-link" onclick="openChatModal()">
+          <div class="side-link-left">
+            <span class="side-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <span>Kênh trò chuyện <span style="display:none">Chat</span></span>
+          </div>
+          <span class="side-pill pill-purple">2</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-group-label">MỤC KHÁC <span style="display:none">OTHERS</span></div>
+      <nav class="sidebar-nav">
+        <button class="side-link" onclick="openHelpModal()">
+          <div class="side-link-left">
+            <span class="side-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+            <span>Hướng dẫn kỹ thuật <span style="display:none">Help Center</span></span>
+          </div>
+        </button>
+        <button class="side-link" onclick="logoutUser()">
+          <div class="side-link-left">
+            <span class="side-link-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </span>
+            <span>Đăng xuất <span style="display:none">Logout</span></span>
+          </div>
+        </button>
+      </nav>
+
+      <!-- Hộp dung lượng lưu trữ cuối Sidebar -->
+      <div class="sidebar-storage-box">
+        <div class="storage-row">
+          <span>Cloud Storage</span>
+          <strong class="tabular-nums">1.2 GB / 5 GB</strong>
+        </div>
+        <div class="storage-bar">
+          <div class="storage-fill" style="width: 24%;"></div>
+        </div>
+        <div class="storage-meta">
+          S3 Edge CDN: Active
+        </div>
+      </div>
+    </aside>
+
+    <!-- =================================================================== -->
+    <!-- KHU VỰC NỘI DUNG CHÍNH (TOP COMMAND HEADER + WORKSPACE VIEWS)       -->
+    <!-- =================================================================== -->
+    <div class="main-area">
+      <!-- TẦNG 1: THANH TIÊU ĐỀ THÔNG MINH (TOP COMMAND HEADER) -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button type="button" class="top-icon-btn mobile-menu-trigger" onclick="openMobileSidebarDrawer()" aria-label="Mở Menu điều hướng">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+
+          <div class="command-search-trigger" onclick="openCommandPalette()" role="button" tabindex="0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color: var(--text-muted); flex-shrink: 0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span class="cmd-trigger-text">Tìm kiếm sản phẩm, đơn hàng, dự án... (Ctrl + K)<span style="display:none">Search products, orders, customers...</span></span>
+            <kbd class="kbd-shortcut">Ctrl + K</kbd>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="themeToggleBtn" class="top-icon-btn top-icon-circle hide-xs" onclick="toggleVisualTheme()" title="Chuyển đổi giao diện Sáng / Tối">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+
+          <button class="top-icon-btn top-icon-circle hide-xs" style="position: relative;" onclick="showToast('Thông báo: 5 đơn hàng mới cần xử lý.')" title="Thông báo mới">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span style="position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; background: #EF4444; border-radius: 50%; box-shadow: 0 0 8px #EF4444;"></span>
+          </button>
+
+          <button id="topBundleCartBtn" class="top-icon-btn" onclick="openBundleCartModal()" title="Mở Giỏ dự án">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            <span class="hide-xs">Giỏ hàng</span> (<span id="topBundleCount" class="tabular-nums">0</span>)
+          </button>
+
+          <!-- 1. KHỐI ĐĂNG NHẬP / ĐĂNG KÝ (HIỆN THỊ KHI CHƯA ĐĂNG NHẬP / GUEST) -->
+          <div id="topGuestAuthButtons" style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openAuthModal('login')">
+              Đăng nhập
+            </button>
+            <button type="button" class="btn btn-primary btn-sm hide-xs" onclick="openAuthModal('register')">
+              Đăng ký
+            </button>
+          </div>
+
+          <!-- 2. KHỐI HỒ SƠ NGƯỜI DÙNG & ĐĂNG XUẤT (HIỆN THỊ KHI ĐÃ ĐĂNG NHẬP) -->
+          <div id="topUserAuthWidget" class="user-profile-widget" style="display: none;" onclick="navigateView('portfolio')" title="Hồ sơ người dùng">
+            <div class="user-avatar-wrap">
+              <div class="user-avatar-img" id="topUserAvatar">JA</div>
+              <div class="user-online-dot"></div>
+            </div>
+            <div class="user-info-text hide-xs">
+              <span class="user-name" id="topUserName">Jisan Ahmed</span>
+              <span class="user-role-label" id="topUserRole">Admin</span>
+            </div>
+            <button type="button" class="btn-logout-mini" onclick="event.stopPropagation(); logoutUser();" title="Đăng xuất khỏi hệ thống">
+              Đăng xuất
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="container">
+        <!-- =============================================================== -->
+        <!-- MÀN HÌNH 2: DASHBOARD THỐNG KÊ (NEXAPANEL E-COMMERCE ADMIN)     -->
+        <!-- =============================================================== -->
+        <section id="viewDashboard" class="view-section">
+          <!-- 1. Hero Welcome Banner với Motivational Card -->
+          <div class="dash-welcome-banner">
+            <div class="dash-welcome-left">
+              <h1 class="dash-greeting-h1" id="dashGreetingTitle">Chào buổi sáng, Jisan Ahmed <span style="display:none">Good Morning, Jisan Ahmed</span></h1>
+              <p class="dash-quote">Dưới đây là tình hình hoạt động cửa hàng &amp; kho mã nguồn hôm nay.</p>
+              <div class="dash-status-row">
+                <span class="dash-pill-btn" id="dashCurrentDateBadge">20 Thg 10, 2025</span>
+                <span class="dash-pill-btn pill-live">
+                  <span class="pulse-green-dot"></span> Đang trực tuyến <span style="display:none">Live Store</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Right Motivational Quote Card matching screenshot -->
+            <div class="dash-motivation-card">
+              <div class="dash-motivation-text">
+                "Từng bước nhỏ mỗi ngày đem lại kết quả lớn." <span style="display:none">Small steps every day lead to big results</span>
+              </div>
+              <div class="dash-motivation-art">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Khung hướng dẫn bắt đầu nhanh khi tài khoản mới 0 dự án (EC-14 Empty State Onboarding) -->
+          <div id="dashOnboardingBanner" class="signed-banner" style="display: none;">
+            <strong>Chào mừng thành viên mới (EC-14 Empty State):</strong> Bạn chưa có dự án hoặc lượt tải nào trong 7 ngày qua. Biểu đồ được giữ ở đường cơ sở <code>0</code> (không phát sinh <code>NaN%</code>).
+          </div>
+
+          <!-- 2. DẢI 4 THẺ CHỈ SỐ KPI CHUẨN NEXAPANEL VỚI HỘP ICON MÀU & ĐƯỜNG SPARKLINE -->
+          <div id="dashKpiGrid" class="kpi-sparkline-grid"></div>
+
+          <!-- LƯỚI MỞ RỘNG 8 Ô BENTO -->
+          <div id="dashBentoExtraGrid" class="bento-extra-grid" style="display: none;"></div>
+
+          <!-- 3. TẦNG 4: SALES OVERVIEW (2/3) & TOP CUSTOMERS + RECENT ACTIVITIES (1/3) -->
+          <div class="dash-middle-grid">
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <div class="dash-card-title-group">
+                  <div class="dash-card-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                  </div>
+                  <div>
+                    <h3>Tổng Quan Doanh Số <span style="display:none">Sales Overview</span></h3>
+                    <small class="text-muted" style="font-size: 0.78rem;">Hiệu suất cửa hàng và kho dự án trong 7 ngày qua</small>
+                  </div>
+                </div>
+                <div class="range-tabs">
+                  <button class="range-btn active" onclick="loadDashboardView(7, this)">7 Ngày</button>
+                  <button class="range-btn" onclick="loadDashboardView(30, this)">30 Ngày</button>
+                  <button class="range-btn" onclick="loadDashboardView(90, this)">90 Ngày</button>
+                </div>
+              </div>
+
+              <!-- Thanh hiển thị dữ liệu khi kéo chạm trên di động -->
+              <div id="dashChartTouchReadout" class="chart-touch-readout">
+                Chạm và kéo ngang trên biểu đồ để xem chi tiết doanh thu và lưu lượng từng ngày.
+              </div>
+
+              <!-- Biểu đồ Spline Area Chart tím neon -->
+              <div id="dashSplineChartBox" class="spline-chart-container"></div>
+
+              <!-- 4 Chỉ số tóm tắt dưới biểu đồ -->
+              <div id="dashChartSummaryRow" class="chart-summary-bar"></div>
+            </div>
+
+            <!-- Cột phải: Top Customers & Recent Activities -->
+            <div class="dash-side-stack">
+              <!-- Top Customers Card -->
+              <div class="dash-card">
+                <div class="dash-card-header">
+                  <div class="dash-card-title-group">
+                    <div class="dash-card-icon" style="background:rgba(245,158,11,0.15);color:#FBBF24;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                    </div>
+                    <h3>Khách Hàng Tiêu Biểu <span style="display:none">Top Customers</span></h3>
+                  </div>
+                  <span class="view-all-link" onclick="navigateView('portfolio')">Xem tất cả →</span>
+                </div>
+                <div id="dashTopContributorsList" class="customer-list"></div>
+              </div>
+
+              <!-- Recent Activities Card -->
+              <div class="dash-card">
+                <div class="dash-card-header">
+                  <div class="dash-card-title-group">
+                    <div class="dash-card-icon" style="background:rgba(99,102,241,0.15);color:#818CF8;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <h3>Hoạt Động Gần Đây <span style="display:none">Recent Activities</span></h3>
+                  </div>
+                  <span class="view-all-link" onclick="pushSimulatedLiveActivity()">+ Thêm hoạt động</span>
+                </div>
+                <div id="dashRecentActivitiesList" class="activity-timeline"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. TẦNG 5: BẢNG SẢN PHẨM / DỰ ÁN BÁN CHẠY & PHÂN BỔ DOANH THU (DONUT) -->
+          <div class="dash-bottom-grid">
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <div class="dash-card-title-group">
+                  <div class="dash-card-icon" style="background:rgba(139,92,246,0.15);color:#A78BFA;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                  </div>
+                  <h3>Sản Phẩm &amp; Dự Án Bán Chạy <span style="display:none">Top Selling Products</span></h3>
+                </div>
+                <span class="view-all-link" onclick="navigateView('explore')">Xem tất cả →</span>
+              </div>
+              <div id="dashTopProjectsTableWrap" class="table-responsive"></div>
+            </div>
+
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <div class="dash-card-title-group">
+                  <div class="dash-card-icon" style="background:rgba(16,185,129,0.15);color:#34D399;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                  </div>
+                  <h3>Phân Bổ Doanh Thu <span style="display:none">Revenue Breakdown</span></h3>
+                </div>
+                <span class="text-muted" style="font-size: 0.78rem;">Tháng này ▼</span>
+              </div>
+              <div id="dashDonutChartWrap" class="donut-chart-wrap"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- MÀN HÌNH 1: KHÁM PHÁ & TÌM KIẾM DỰ ÁN (DISCOVERY ENGINE)        -->
+        <!-- =============================================================== -->
+        <section id="viewExplore" class="view-section" style="display: none;">
+          <div class="hero-banner">
+            <div class="hero-content">
+              <span class="hero-pill">KHO LƯU TRỮ DỰ ÁN MÃ NGUỒN MỞ · XÁC THỰC BẢO MẬT 4 TẦNG</span>
+              <h1>Kho Lưu Trữ &amp; Chia Sẻ Dự Án Mã Nguồn Mở</h1>
+              <p>Duyệt cây thư mục, đọc mã nguồn, cấu hình <code>.env</code>, gom dự án vào giỏ và tải về dễ dàng khi đăng nhập tài khoản.</p>
+            </div>
+            <div class="hero-actions">
+              <button class="btn btn-primary" onclick="navigateView('upload')">+ Đăng tải dự án mới</button>
+              <button class="btn btn-secondary" onclick="navigateView('dashboard')">Xem Dashboard Thống kê</button>
+            </div>
+          </div>
+
+          <!-- BỘ LỌC TÌM KIẾM ĐA CHIỀU (DEBOUNCED 250MS) -->
+          <div class="search-filter-card">
+            <div class="search-row">
+              <div class="search-input-wrap">
+                <input
+                  type="text"
+                  id="searchInput"
+                  class="form-input"
+                  placeholder="Nhập từ khóa dự án, tác giả, thẻ công nghệ hoặc mã kết nối 6 ký tự (VD: HUB-849)..."
+                  oninput="handleSearchInput(this.value)"
+                >
+                <div id="autocompleteBox" class="autocomplete-dropdown" style="display: none;"></div>
+              </div>
+              <button class="btn btn-primary" onclick="triggerExploreSearch()">Tìm kiếm</button>
+              <button class="btn btn-secondary" onclick="resetExploreFilters()">Đặt lại bộ lọc</button>
+            </div>
+
+            <div class="filter-grid">
+              <div>
+                <label class="filter-label" for="filterCategory">Danh mục</label>
+                <select id="filterCategory" class="form-select" onchange="triggerExploreSearch()">
+                  <option value="">Tất cả danh mục (7)</option>
+                </select>
+              </div>
+              <div>
+                <label class="filter-label" for="filterTag">Ngôn ngữ / Thẻ (Tag)</label>
+                <select id="filterTag" class="form-select" onchange="triggerExploreSearch()">
+                  <option value="">Tất cả công nghệ</option>
+                  <option value="TypeScript">TypeScript</option>
+                  <option value="React">React</option>
+                  <option value="Next.js">Next.js</option>
+                  <option value="Python">Python</option>
+                  <option value="Node.js">Node.js</option>
+                  <option value="Rust">Rust</option>
+                  <option value="Docker">Docker</option>
+                </select>
+              </div>
+              <div>
+                <label class="filter-label" for="filterLicense">Giấy phép (License)</label>
+                <select id="filterLicense" class="form-select" onchange="triggerExploreSearch()">
+                  <option value="">Mọi giấy phép</option>
+                  <option value="MIT">MIT License</option>
+                  <option value="Apache-2.0">Apache-2.0</option>
+                  <option value="GPL-3.0">GPL-3.0</option>
+                </select>
+              </div>
+              <div>
+                <label class="filter-label" for="filterSort">Sắp xếp theo</label>
+                <select id="filterSort" class="form-select" onchange="triggerExploreSearch()">
+                  <option value="downloads">Tải nhiều nhất</option>
+                  <option value="stars">Nhiều sao nhất</option>
+                  <option value="health">Điểm sức khỏe (Health Score)</option>
+                  <option value="newest">Mới cập nhật</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-QuickRow" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+              <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="filterHasDemo" onchange="triggerExploreSearch()">
+                Chỉ hiện dự án có bản chạy thử (Live Demo URL)
+              </label>
+              <span id="exploreCacheBadge" class="badge badge-outline">Cache: HIT</span>
+            </div>
+          </div>
+
+          <!-- 4 TRẠNG THÁI GIAO DIỆN CHUẨN HÓA: SKELETON / SUCCESS / EMPTY / ERROR -->
+          <div id="exploreSkeletonState" class="project-grid" style="display: none;">
+            <div class="skeleton-card"><div class="sk-line sk-title"></div><div class="sk-line"></div><div class="sk-line sk-short"></div></div>
+            <div class="skeleton-card"><div class="sk-line sk-title"></div><div class="sk-line"></div><div class="sk-line sk-short"></div></div>
+            <div class="skeleton-card"><div class="sk-line sk-title"></div><div class="sk-line"></div><div class="sk-line sk-short"></div></div>
+          </div>
+
+          <div id="exploreSuccessState">
+            <div class="section-meta-bar" style="margin-bottom: 12px; font-size: 0.84rem; color: var(--text-secondary);">
+              <span id="exploreResultCountText">Đang tải danh sách dự án...</span>
+            </div>
+            <div id="exploreProjectsGrid" class="project-grid"></div>
+          </div>
+
+          <div id="exploreEmptyState" class="state-box" style="display: none;">
+            <h3>Không tìm thấy dự án phù hợp với bộ lọc</h3>
+            <p>Hãy thử xóa bớt điều kiện lọc hoặc tìm bằng từ khóa ngắn hơn.</p>
+            <button class="btn btn-primary" onclick="resetExploreFilters()">Xóa toàn bộ bộ lọc</button>
+          </div>
+
+          <div id="exploreErrorState" class="state-box error-state-box" style="display: none;">
+            <h3>Không thể tải danh sách dự án</h3>
+            <p id="exploreErrorMessage">Kết nối tới máy chủ tạm thời gián đoạn. Vui lòng thử lại.</p>
+            <button class="btn btn-primary" onclick="triggerExploreSearch()">Thử tải lại</button>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- MÀN HÌNH 3: CHI TIẾT DỰ ÁN, CÂY THƯ MỤC, DIFF, .ENV & CỘNG ĐỒNG -->
+        <!-- =============================================================== -->
+        <section id="viewDetail" class="view-section" style="display: none;">
+          <div class="detail-top-actions">
+            <button class="btn btn-secondary" onclick="navigateView('explore')">Quay lại danh sách</button>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button class="btn btn-secondary" onclick="handleToggleStarCurrentProject()">Đánh dấu sao (<span id="detailStarCountBtn" class="tabular-nums">0</span>)</button>
+              <button id="detailAddBundleBtn" class="btn btn-secondary" onclick="addCurrentProjectToBundle()">Thêm vào giỏ (0)</button>
+              <button class="btn btn-primary" onclick="openMobileToPcHandoffModal()">[ Lấy sang PC (Mã 6 ký tự) ]</button>
+              <button class="btn btn-secondary" onclick="openReportModal()">Báo cáo vi phạm</button>
+            </div>
+          </div>
+
+          <div id="detailSkeletonState" class="skeleton-card" style="display: none;">
+            <div class="sk-line sk-title"></div>
+            <div class="sk-line"></div>
+          </div>
+
+          <div id="detailErrorState" class="state-box error-state-box" style="display: none;">
+            <h3 id="detailErrorTitle">Dự án tạm thời không khả dụng</h3>
+            <p id="detailErrorMessage"></p>
+            <button class="btn btn-primary" onclick="reloadCurrentProjectDetail()">Thử tải lại</button>
+          </div>
+
+          <div id="detailSuccessState">
+            <div class="detail-header-card">
+              <div class="detail-main-info">
+                <div class="detail-badges">
+                  <span id="detailCategoryBadge" class="badge badge-primary"></span>
+                  <span id="detailVersionBadge" class="badge badge-outline"></span>
+                  <span id="detailHealthBadge" class="badge badge-emerald"></span>
+                  <span id="detailLicenseBadge" class="badge badge-outline"></span>
+                </div>
+                <h1 id="detailTitle"></h1>
+                <p id="detailShortDesc" class="detail-desc"></p>
+                <div id="detailTagsRow" class="tags-row"></div>
+                <div class="detail-meta-row">
+                  <span>Tác giả: <strong id="detailOwner" style="cursor:pointer;text-decoration:underline;" onclick="openPortfolioFromDetail()"></strong></span>
+                  <span>Cập nhật: <strong id="detailUpdated"></strong></span>
+                  <span>Lượt xem: <strong id="detailViews" class="tabular-nums"></strong></span>
+                  <span>Lượt tải: <strong id="detailDownloads" class="tabular-nums"></strong></span>
+                  <span>Đánh giá: <strong id="detailRatingAvg" class="tabular-nums">5.0</strong></span>
+                </div>
+              </div>
+
+              <div class="download-hub-box">
+                <div class="form-group">
+                  <label class="filter-label" for="detailVersionSelect">Phiên bản phát hành (Releases):</label>
+                  <select id="detailVersionSelect" class="form-select" onchange="handleVersionSwitch(this.value)"></select>
+                </div>
+
+                <button id="oneClickDownloadBtn" class="btn btn-primary btn-block" onclick="handleOneClickDownload()">
+                  [ Tải xuống .ZIP ]
+                </button>
+
+                <div style="display: flex; gap: 0.4rem; margin-top: 0.5rem;">
+                  <a id="detailLiveDemoLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1; text-align: center;">
+                    Mở Live Demo
+                  </a>
+                  <button id="rollbackVersionBtn" class="btn btn-secondary" style="display: none;" onclick="handleRollbackToSelectedVersion()">
+                    Đặt làm mặc định
+                  </button>
+                </div>
+
+                <div class="checksum-box">
+                  <div class="checksum-header">
+                    <span>SHA-256 Checksum:</span>
+                    <button class="btn-link" onclick="copyTextById('detailSha256Text')">Sao chép</button>
+                  </div>
+                  <code id="detailSha256Text" class="checksum-code"></code>
+                </div>
+
+                <div class="cli-box">
+                  <div class="checksum-header">
+                    <span>Tải bằng dòng lệnh (Hỗ trợ HTTP Range 206):</span>
+                    <button class="btn-link" onclick="copyTextById('detailCliCommand')">Sao chép</button>
+                  </div>
+                  <code id="detailCliCommand" class="cli-code"></code>
+                </div>
+              </div>
+            </div>
+
+            <div id="signedDownloadResultBanner" class="signed-banner" style="display: none;"></div>
+
+            <!-- THANH ĐƯỜNG DẪN TỆP MỞ NGĂN KÉO ĐÁY TRÊN ĐIỆN THOẠI (CD-06: BREADCRUMB + BOTTOM SHEET) -->
+            <div id="mobileFileBreadcrumbBar" class="mobile-file-breadcrumb" onclick="openMobileFileTreeSheet()" role="button" tabindex="0">
+              <div class="breadcrumb-left">
+                <span>Tệp:</span>
+                <span id="mobileBreadcrumbPath" class="mono-truncate">Chọn tệp mã nguồn...</span>
+              </div>
+              <span class="badge badge-primary">Đổi tệp ▾</span>
+            </div>
+
+            <!-- CÂY THƯ MỤC (DÙNG THỤT LỀ BORDER-L + KÝ TỰ ▸ / ▾ HOẶC /) & XEM MÃ NGUỒN -->
+            <div class="explorer-grid">
+              <div class="tree-panel desktop-tree-panel">
+                <div class="panel-header">
+                  <strong>Cây thư mục (<span id="treeVersionLabel"></span>)</strong>
+                </div>
+                <div style="padding: 0.5rem 0.65rem; border-bottom: 1px solid var(--border);">
+                  <input type="text" id="treeSearchInput" class="form-input" placeholder="Lọc nhanh tên tệp trong cây..." oninput="renderTreeNodesUI()">
+                </div>
+                <div id="fileTreeContainer" class="tree-body"></div>
+              </div>
+
+              <div class="code-panel">
+                <div class="panel-header">
+                  <div style="min-width:0;">
+                    <strong id="codePreviewFileName">Chọn một tệp để xem mã nguồn</strong>
+                    <span id="codePreviewMeta" class="code-meta"></span>
+                  </div>
+                  <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                    <button id="wordWrapToggleBtn" class="btn btn-secondary btn-sm" onclick="toggleCodeWordWrap()">
+                      Word Wrap: Tắt
+                    </button>
+                    <button id="downloadSingleFileBtn" class="btn btn-secondary btn-sm" style="display: none;" onclick="handleSingleFileDownload()">
+                      [ Tải tệp này ]
+                    </button>
+                  </div>
+                </div>
+                <div id="codePreviewNotice" class="code-warning-banner" style="display: none;"></div>
+                <div id="codePreviewBody" class="code-body">
+                  <div class="code-placeholder">Nhấp vào bất kỳ tệp nào ở cây thư mục bên trái để xem nội dung kèm đánh số dòng.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CÔNG CỤ TẠO .ENV TRỰC QUAN, SO SÁNH PHIÊN BẢN DIFF & PHÂN TÍCH THƯ VIỆN -->
+            <div class="docs-grid" style="margin-bottom: 1.25rem;">
+              <div class="doc-card">
+                <div class="panel-header">
+                  <strong>Trình cấu hình biến môi trường (Interactive <code>.env</code> Builder)</strong>
+                </div>
+                <div class="markdown-body">
+                  <p class="text-muted" style="margin-bottom:0.65rem;">Điền trước các thông số bên dưới để hệ thống tự động đóng gói tệp <code>.env</code> vào gói dự án tải về:</p>
+                  <div id="detailEnvBuilderFields"></div>
+                  <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="handleDownloadWithCustomEnv()">
+                    [ Tải dự án kèm .env ]
+                  </button>
+                </div>
+              </div>
+
+              <div class="doc-card">
+                <div class="panel-header">
+                  <strong>So sánh Phiên bản (Version Diff Viewer) & Phụ thuộc</strong>
+                  <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                    <button id="diffModeToggleBtn" class="btn btn-secondary btn-sm" onclick="toggleDiffLayoutMode()">Chế độ: Tự động</button>
+                    <button class="btn btn-secondary btn-sm" onclick="loadVersionDiffView()">Xem Diff v1.0.0 - Mới nhất</button>
+                  </div>
+                </div>
+                <div class="markdown-body">
+                  <div id="detailDependenciesBox" style="margin-bottom:0.75rem;"></div>
+                  <div id="detailDiffContainer"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- KHỐI README & HƯỚNG DẪN CÀI ĐẶT NHANH -->
+            <div class="docs-grid" style="margin-bottom: 1.25rem;">
+              <div class="doc-card">
+                <div class="panel-header">
+                  <strong>Tài liệu dự án (README.md — Đã lọc XSS & Bọc Image Proxy)</strong>
+                </div>
+                <div id="detailReadmeContainer" class="markdown-body"></div>
+              </div>
+
+              <div class="doc-card">
+                <div class="panel-header">
+                  <strong>Hướng dẫn Cài đặt & Chạy thử Nhanh (Quick Start Guide)</strong>
+                </div>
+                <div id="detailQuickStartContainer" class="markdown-body"></div>
+              </div>
+            </div>
+
+            <!-- ĐÁNH GIÁ CÓ CẤU TRÚC & HỎI ĐÁP KỸ THUẬT -->
+            <div class="docs-grid">
+              <div class="doc-card">
+                <div class="panel-header">
+                  <strong>Đánh giá Thực tế (Verified Downloader Reviews)</strong>
+                </div>
+                <div class="markdown-body">
+                  <div id="detailReviewsList" style="margin-bottom:0.75rem;"></div>
+                  <div style="border-top:1px solid var(--border);padding-top:0.75rem;">
+                    <div class="form-grid-2">
+                      <div>
+                        <label class="filter-label" for="revTestedOs">Môi trường đã chạy thử</label>
+                        <select id="revTestedOs" class="form-select">
+                          <option value="docker">Docker Compose</option>
+                          <option value="windows">Windows 11</option>
+                          <option value="macos">macOS</option>
+                          <option value="linux">Ubuntu / Linux</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="filter-label" for="revStars">Điểm chất lượng (1-5)</label>
+                        <select id="revStars" class="form-select">
+                          <option value="5">5 / 5 (Xuất sắc)</option>
+                          <option value="4">4 / 5 (Tốt)</option>
+                          <option value="3">3 / 5 (Khá)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <input type="text" id="revComment" class="form-input" style="margin-top:0.5rem;" placeholder="Nhận xét về chất lượng mã nguồn và tài liệu...">
+                    <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="submitReviewFromUI()">Gửi đánh giá</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="doc-card">
+                <div class="panel-header">
+                  <strong>Hỏi đáp Kỹ thuật & Báo lỗi Cài đặt (Project Issues)</strong>
+                </div>
+                <div class="markdown-body">
+                  <div id="detailIssuesList" style="margin-bottom:0.75rem;"></div>
+                  <div style="border-top:1px solid var(--border);padding-top:0.75rem;">
+                    <input type="text" id="issueTitleInput" class="form-input" placeholder="Đặt câu hỏi về cách cài đặt hoặc cấu hình dự án...">
+                    <button class="btn btn-secondary btn-sm" style="margin-top:0.5rem;" onclick="submitIssueFromUI()">Đăng câu hỏi</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- MÀN HÌNH 4: HỆ THỐNG ĐĂNG KÝ, OTP 6 SỐ, ĐĂNG NHẬP, 2FA & PAT    -->
+        <!-- =============================================================== -->
+        <section id="viewAuth" class="view-section" style="display: none;">
+          <div class="wizard-card">
+            <div class="wizard-header">
+              <h2>Hệ Thống Định Danh, Đăng Ký OTP Kép, Bảo Mật 2FA & Quản Lý Phiên (IAM)</h2>
+              <p>Kiểm tra trùng lặp Username thời gian thực (300ms), đo độ mạnh mật khẩu 4 vạch, xác thực OTP 6 ô vuông + Magic Link, xoay vòng Refresh Token và quản lý Personal Access Tokens.</p>
+            </div>
+
+            <div class="docs-grid">
+              <!-- Cột Trái: Đăng ký + OTP 6 số -->
+              <div class="doc-card auth-3d-stage" style="padding:1.25rem; overflow-x:hidden;">
+                <h3>1. Đăng ký Tài khoản & Kiểm tra Thời gian thực</h3>
+                <div id="authStepRegisterForm" class="auth-step-pane">
+                  <div class="form-group" style="margin-top:0.75rem;">
+                    <label class="filter-label" for="regUsername">Tên định danh duy nhất (Username — Kiểm tra debounced 300ms)</label>
+                    <input type="text" id="regUsername" class="form-input" placeholder="Ví dụ: hoang_dev_2026" oninput="handleRealtimeUsernameCheck(this.value)">
+                    <div id="regUsernameFeedback" style="font-size:0.78rem;margin-top:0.25rem;"></div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="filter-label" for="regEmail">Địa chỉ Email</label>
+                    <input type="email" id="regEmail" class="form-input" placeholder="hoang@developer.vn">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="filter-label" for="regPassword">Mật khẩu chuẩn bảo mật (5 tiêu chí)</label>
+                    <input type="password" id="regPassword" class="form-input" placeholder="Nhập mật khẩu (ví dụ: UltraSecure#2026)" oninput="handleRealtimePasswordMeter(this.value)">
+                    <div class="pwd-meter-bars">
+                      <div id="pwdBar1" class="pwd-bar"></div>
+                      <div id="pwdBar2" class="pwd-bar"></div>
+                      <div id="pwdBar3" class="pwd-bar"></div>
+                      <div id="pwdBar4" class="pwd-bar"></div>
+                    </div>
+                    <div id="regPasswordFeedback" style="font-size:0.78rem;margin-top:0.25rem;"></div>
+                  </div>
+
+                  <button id="regSubmitBtn" class="btn btn-primary btn-block" onclick="submitRegistrationForm()">
+                    [ Đăng ký & Nhận mã OTP 6 số ]
+                  </button>
+                </div>
+
+                <!-- Khung nhập OTP 6 ô vuông tự động nhảy con trỏ -->
+                <div id="otpVerificationBox" class="otp-box-container" style="display:none; overflow-x:hidden;">
+                  <h4>Xác thực Email Kép (Nhập 6 số OTP hoặc dùng Magic Link)</h4>
+                  <p id="otpDemoHint" style="font-size:0.8rem;color:#34d399;margin:0.35rem 0;"></p>
+                  <div class="otp-inputs-row" id="otpInputsRow">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="1" class="otp-digit-input otp-active-pulse" oninput="handleOtpDigitInput(this, 0)" onpaste="handleOtpPaste(event)" aria-label="Số OTP 1">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-input" oninput="handleOtpDigitInput(this, 1)" aria-label="Số OTP 2">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-input" oninput="handleOtpDigitInput(this, 2)" aria-label="Số OTP 3">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-input" oninput="handleOtpDigitInput(this, 3)" aria-label="Số OTP 4">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-input" oninput="handleOtpDigitInput(this, 4)" aria-label="Số OTP 5">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-input" oninput="handleOtpDigitInput(this, 5)" aria-label="Số OTP 6">
+                  </div>
+                  <div id="otpShieldSuccessBox" class="otp-shield-success" style="display:none;">
+                    <span class="badge badge-emerald">Sạch (Clean) — Xác thực Bảo mật Kép thành công</span>
+                  </div>
+                  <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;margin-top:0.65rem;">
+                    <button class="btn btn-primary btn-sm" onclick="verifyOtpCodeFromBoxes()">[ Xác nhận OTP ]</button>
+                    <button class="btn btn-secondary btn-sm" onclick="verifyViaDemoMagicLink()">Xác thực bằng Magic Link</button>
+                    <button class="btn btn-secondary btn-sm" onclick="triggerOtpWrongShakeDemo()">Thử OTP sai</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cột Phải: Bảo mật 2FA, Quản lý Thiết bị & PAT -->
+              <div class="doc-card" style="padding:1.25rem;">
+                <h3>2. Bảo mật 2 Lớp (2FA / TOTP), Phiên Thiết bị & Khóa API (PAT)</h3>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:0.75rem 0;">
+                  <button class="btn btn-primary btn-sm" onclick="enable2FAFromUI()">[ Bật 2FA & Tạo 10 mã dự phòng ]</button>
+                  <button class="btn btn-secondary btn-sm" onclick="generatePatFromUI()">Tạo Personal Access Token (PAT)</button>
+                </div>
+                <div id="auth2faResultBox" style="margin-bottom:1rem;"></div>
+                <div id="authPatResultBox" style="margin-bottom:1rem;"></div>
+
+                <h4>Danh sách Thiết bị Đang đăng nhập (Active Sessions)</h4>
+                <div id="activeSessionsListWrap" style="margin-top:0.5rem;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- MÀN HÌNH 5: HỒ SƠ NĂNG LỰC LẬP TRÌNH VIÊN (PORTFOLIO & HEATMAP) -->
+        <!-- =============================================================== -->
+        <section id="viewPortfolio" class="view-section" style="display: none;">
+          <div id="portfolioContainer" class="wizard-card"></div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- MÀN HÌNH 6: TRÌNH THUẬT SĨ ĐĂNG TẢI 4 BƯỚC & ĐỒNG BỘ GITHUB     -->
+        <!-- =============================================================== -->
+        <section id="viewUpload" class="view-section" style="display: none;">
+          <div class="wizard-card">
+            <div class="wizard-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+              <div>
+                <h2>Đăng tải Dự án Mới (4-Step Wizard) & Đồng bộ GitHub</h2>
+                <p>Mọi gói tải lên đều đi qua Worker Quét An Toàn 4 Tầng (Chống Zip Bomb 100:1, Zip Slip, Lộ khóa AWS/.env, Tự động lọc sạch <code>node_modules</code> & chấm điểm Health Score 0–100).</p>
+              </div>
+              <button class="btn btn-secondary" onclick="importSampleGitHubRepoFromUI()">
+                Đồng bộ nhanh từ GitHub Repo
+              </button>
+            </div>
+
+            <div class="wizard-steps-bar">
+              <div id="wizStepIndicator1" class="wiz-step active">1. Thông tin cơ bản</div>
+              <div id="wizStepIndicator2" class="wiz-step">2. Gói mã nguồn</div>
+              <div id="wizStepIndicator3" class="wiz-step">3. Tài liệu & Demo</div>
+              <div id="wizStepIndicator4" class="wiz-step">4. Quét 4 tầng & Xuất bản</div>
+            </div>
+
+            <div id="wizStep1" class="wiz-pane">
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="filter-label" for="upTitle">Tên dự án (*)</label>
+                  <input type="text" id="upTitle" class="form-input" placeholder="Ví dụ: Hệ thống AI RAG Tiếng Việt" oninput="handleUploadTitleInput(this.value)">
+                </div>
+                <div class="form-group">
+                  <label class="filter-label" for="upSlug">Đường dẫn tĩnh (Slug tự động)</label>
+                  <input type="text" id="upSlug" class="form-input" readonly>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="filter-label" for="upShortDesc">Mô tả ngắn gọn (*)</label>
+                <input type="text" id="upShortDesc" class="form-input" placeholder="Tóm tắt giá trị cốt lõi của dự án từ 10 - 280 ký tự...">
+              </div>
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label class="filter-label" for="upCategory">Danh mục</label>
+                  <select id="upCategory" class="form-select"></select>
+                </div>
+                <div class="form-group">
+                  <label class="filter-label" for="upLicense">Giấy phép (License)</label>
+                  <select id="upLicense" class="form-select">
+                    <option value="MIT">MIT License</option>
+                    <option value="Apache-2.0">Apache-2.0</option>
+                    <option value="GPL-3.0">GPL-3.0</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="filter-label" for="upTags">Thẻ công nghệ (phân cách bằng dấu phẩy)</label>
+                  <input type="text" id="upTags" class="form-input" value="TypeScript, React, Node.js, Docker">
+                </div>
+              </div>
+              <div class="wizard-footer">
+                <button class="btn btn-primary" onclick="goToWizardStep(2)">Tiếp tục: Bước 2</button>
+              </div>
+            </div>
+
+            <div id="wizStep2" class="wiz-pane" style="display: none;">
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="filter-label" for="upVersion">Phiên bản phát hành (Semantic Versioning)</label>
+                  <input type="text" id="upVersion" class="form-input" value="1.0.0">
+                </div>
+                <div class="form-group">
+                  <label class="filter-label" for="upPresetSelect">Kịch bản gói mã nguồn (Kiểm tra trực tiếp các chốt bảo mật):</label>
+                  <select id="upPresetSelect" class="form-select" onchange="loadUploadScenarioPreset(this.value)">
+                    <option value="clean_with_junk">Gói chuẩn (Kèm node_modules & .DS_Store để Smart Sanitizer tự dọn)</option>
+                    <option value="leaked_secret">Gói vô tình lộ khóa AWS AKIA... & tệp .env thật (Chặn xuất bản)</option>
+                    <option value="path_traversal">Gói tấn công Path Traversal ../../etc/passwd (Zip Slip)</option>
+                    <option value="zip_bomb">Gói tấn công Zip Bomb tỷ lệ nén > 100:1 (Hủy tiến trình)</option>
+                    <option value="readme_only">Gói chỉ có 1 tệp README.md rỗng (Từ chối)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="filter-label" for="upEntriesJson">Danh sách tệp trong gói tải lên:</label>
+                <textarea id="upEntriesJson" class="form-textarea code-textarea" rows="8"></textarea>
+              </div>
+              <div class="wizard-footer">
+                <button class="btn btn-secondary" onclick="goToWizardStep(1)">Quay lại</button>
+                <button class="btn btn-primary" onclick="goToWizardStep(3)">Tiếp tục: Bước 3</button>
+              </div>
+            </div>
+
+            <div id="wizStep3" class="wiz-pane" style="display: none;">
+              <div class="form-group">
+                <label class="filter-label" for="upQuickStart">Hướng dẫn Cài đặt & Chạy nhanh (Quick Start Guide)</label>
+                <textarea id="upQuickStart" class="form-textarea" rows="4">1. Giải nén gói dự án
+2. Chạy npm install && npm run dev
+3. Mở http://localhost:3000</textarea>
+              </div>
+              <div class="form-group">
+                <label class="filter-label" for="upDemoUrl">Liên kết chạy thử (Live Demo URL)</label>
+                <input type="url" id="upDemoUrl" class="form-input" value="https://demo.openhub.vn">
+              </div>
+              <div class="wizard-footer">
+                <button class="btn btn-secondary" onclick="goToWizardStep(2)">Quay lại</button>
+                <button class="btn btn-primary" onclick="submitAndScanWizardProject()">[ Bước 4: Quét An Toàn 4 Tầng & Xuất Bản ]</button>
+              </div>
+            </div>
+
+            <div id="wizStep4" class="wiz-pane" style="display: none;">
+              <div id="wizScanResultContainer"></div>
+              <div class="wizard-footer">
+                <button class="btn btn-secondary" onclick="goToWizardStep(2)">Thử kịch bản khác</button>
+                <button id="wizViewPublishedBtn" class="btn btn-primary" style="display: none;" onclick="openLastUploadedProject()">Mở trang chi tiết dự án</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- MÀN HÌNH 7: TRUNG TÂM KIỂM DUYỆT AN TOÀN & NHẬT KÝ BẤT BIẾN     -->
+        <!-- =============================================================== -->
+        <section id="viewAdmin" class="view-section" style="display: none;">
+          <div class="wizard-card">
+            <div class="wizard-header">
+              <h2>Trung Tâm Kiểm Duyệt An Toàn, Auto-Quarantine & Nhật Ký Bất Biến (Audit Logs)</h2>
+              <p>Khi dự án nhận từ 5 báo cáo vi phạm từ 5 IP độc lập trong 1 giờ, cầu chì Auto-Quarantine tự động chuyển sang <code>quarantined</code>. Khi Admin khôi phục (Restore), ngưỡng tự động nâng thêm +5.</p>
+            </div>
+            <h3>1. Danh sách Dự án & Điều khiển Trạng thái</h3>
+            <div id="adminProjectsTableWrap" class="table-responsive" style="margin-bottom: 1.5rem;"></div>
+
+            <h3>2. Hàng đợi Báo cáo Vi phạm (Abuse Reports Queue)</h3>
+            <div id="adminReportsTableWrap" class="table-responsive" style="margin-bottom: 1.5rem;"></div>
+
+            <h3>3. Nhật ký Kiểm toán Bất biến (Immutable Audit Logs)</h3>
+            <div id="adminAuditLogsWrap" class="table-responsive"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL COMMAND PALETTE (CTRL + K) -->
+  <div id="commandPaletteModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeCommandPalette()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Tìm kiếm nhanh toàn hệ thống (Command Palette)</h3>
+        <button type="button" class="btn-close" onclick="closeCommandPalette()" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <input type="text" id="cmdPaletteInput" class="form-input" placeholder="Gõ tên dự án, thẻ công nghệ hoặc mã kết nối 6 ký tự (HUB-849)..." oninput="handleCommandPaletteSearch(this.value)">
+      <div id="cmdPaletteResults" style="margin-top:0.75rem;max-height:300px;overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- MODAL GIỎ DỰ ÁN (PROJECT BUNDLE CART — EC-15) -->
+  <div id="bundleCartModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeBundleCartModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Giỏ Dự Án (Project Bundle Cart — Tải nhiều dự án 1 chạm)</h3>
+        <button type="button" class="btn-close" onclick="closeBundleCartModal()" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <p class="text-muted" style="font-size:0.85rem;margin-bottom:0.75rem;">Hệ thống tự động loại bỏ dự án đã gỡ hoặc đang cách ly (EC-15) và đóng gói các dự án hợp lệ kèm <code>BUNDLE_MANIFEST.txt</code>.</p>
+      <div id="bundleCartList" style="margin-bottom:1rem;"></div>
+      <div id="bundleDownloadResult" style="margin-bottom:1rem;"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="clearBundleCart()">Xóa giỏ</button>
+        <button class="btn btn-primary" onclick="downloadAllBundleCart()">[ Tải xuống toàn bộ giỏ (.ZIP) ]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL BÁO CÁO VI PHẠM -->
+  <div id="reportModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Báo cáo Dự án Lỗi hoặc Vi phạm An toàn</h3>
+        <button type="button" class="btn-close" onclick="closeReportModal()" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="filter-label" for="reportReason">Lý do báo cáo (*)</label>
+          <select id="reportReason" class="form-select">
+            <option value="MALWARE">Mã độc hại / Virus</option>
+            <option value="SPAM">Nội dung rác (Spam) / Giả mạo</option>
+            <option value="LEAKED_KEY">Lộ khóa bảo mật (.env, Secret Key)</option>
+            <option value="COPYRIGHT">Vi phạm bản quyền</option>
+            <option value="BROKEN">Mã nguồn hỏng, không chạy được</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-top:0.75rem;">
+          <label class="filter-label" for="reportDetails">Mô tả chi tiết (*)</label>
+          <textarea id="reportDetails" class="form-textarea" rows="3" placeholder="Vui lòng cung cấp chi tiết bằng chứng..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeReportModal()">Hủy</button>
+        <button class="btn btn-primary" onclick="submitAbuseReport()">[ Gửi báo cáo ]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DIFF VIEWER (CD-07) -->
+  <div id="diffViewerModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeDiffViewerModal()">
+    <div class="modal-box" style="max-width: 900px;">
+      <div class="modal-header">
+        <h3>So Sánh Phiên Bản Mã Nguồn (Version Diff)</h3>
+        <button type="button" class="btn-close" onclick="closeDiffViewerModal()" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="diffViewerBody" class="diff-body" style="max-height: 60vh; overflow-y: auto;"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM SHEET CÂY THƯ MỤC TRÊN MOBILE (CD-06) -->
+  <div id="mobileFileTreeSheet" class="mobile-sheet-backdrop" style="display: none;" onclick="if(event.target===this)closeMobileFileTreeSheet()">
+    <div id="mobileFileTreeSheetBox" class="mobile-sheet-card">
+      <div class="mobile-sheet-header">
+        <div class="sheet-drag-handle"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:8px;">
+          <strong>Cây Thư Mục Dự Án</strong>
+          <button type="button" class="btn-close" onclick="closeMobileFileTreeSheet()" aria-label="Đóng">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="mobileSheetTreeContainer" class="tree-body" style="max-height:55dvh;"></div>
+    </div>
+  </div>
+
+  <!-- MODAL ĐIỀU HƯỚNG ĐÁY MOBILE (CD-10) -->
+  <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Điều hướng di động">
+    <button type="button" id="mobNavExplore" class="mob-nav-item active" onclick="navigateView('explore')">
+      <span class="mob-nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      </span>
+      <span class="mob-nav-lbl">Khám phá</span>
+    </button>
+    <button type="button" id="mobNavDash" class="mob-nav-item" onclick="navigateView('dashboard')">
+      <span class="mob-nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      </span>
+      <span class="mob-nav-lbl">Bảng điều khiển</span>
+    </button>
+    <button type="button" id="mobNavBundle" class="mob-nav-item" onclick="openBundleCartModal()">
+      <span class="mob-nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      </span>
+      <span class="mob-nav-lbl">Giỏ (<span id="mobileBottomBundleCount" class="tabular-nums">0</span>)</span>
+    </button>
+    <button type="button" id="mobNavUpload" class="mob-nav-item" onclick="navigateView('upload')">
+      <span class="mob-nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </span>
+      <span class="mob-nav-lbl">Đăng tải</span>
+    </button>
+    <button type="button" id="mobNavMore" class="mob-nav-item" onclick="if(!appState.currentUser){openAuthModal('register')}else{navigateView('portfolio')}">
+      <span class="mob-nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </span>
+      <span class="mob-nav-lbl">Tài khoản</span>
+    </button>
+  </nav>
+
+  <!-- MODAL "XEM TRÊN ĐIỆN THOẠI — LẤY DỰ ÁN TRÊN PC" (MOBILE-TO-PC HANDOFF & QUICK PAIR CODE — LUỒNG 4 & CD-12) -->
+  <div id="handoffModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeMobileToPcHandoffModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Xem Trên Điện Thoại — Lấy Dự Án Trên PC (Cross-Device Handoff)</h3>
+        <button type="button" class="btn-close" onclick="closeMobileToPcHandoffModal()" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="handoffModalBody" style="margin-bottom:1rem;"></div>
+      <div style="padding-top:0.75rem;border-top:1px solid var(--border);">
+        <label class="filter-label" for="pcResolvePairInput">Đang ở trên PC? Nhập Mã Kết Nối Nhanh 6 Ký Tự (VD: HUB-849) để lấy dự án ngay:</label>
+        <div style="display:flex;gap:0.5rem;">
+          <input type="text" id="pcResolvePairInput" class="form-input" placeholder="Ví dụ: HUB-849 hoặc PRO-739">
+          <button type="button" class="btn btn-primary" onclick="resolveQuickPairCodeFromUI()">[ Lấy dự án ]</button>
+        </div>
+        <div id="pcResolvePairResult" style="margin-top:0.65rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ĐĂNG KÝ / ĐĂNG NHẬP BẢO MẬT (AUTH GATE MODAL - REGISTER TAB FIRST) -->
+  <div id="authModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeAuthModal()">
+    <div class="modal-box auth-modal-box">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          
+          <div>
+            <h3 id="authModalHeading" style="margin: 0; font-size: 1.15rem;">Đăng Ký Tài Khoản Mới</h3>
+            <small class="text-muted" id="authModalSubtitle" style="font-size: 0.78rem;">Bạn cần tạo tài khoản để sử dụng các chức năng của hệ thống</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" onclick="closeAuthModal()" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Thanh chuyển đổi tab: Mặc định là Đăng Ký Tài Khoản Mới -->
+      <div class="auth-tabs-bar">
+        <button type="button" id="authTabRegisterBtn" class="auth-tab-btn active" onclick="switchAuthModalTab('register')">
+          1. Đăng ký tài khoản mới
+        </button>
+        <button type="button" id="authTabLoginBtn" class="auth-tab-btn" onclick="switchAuthModalTab('login')">
+          2. Đã có tài khoản? Đăng nhập
+        </button>
+      </div>
+
+      <!-- TAB 1: FORM ĐĂNG KÝ TÀI KHOẢN MỚI -->
+      <div id="authTabRegisterPane" class="auth-pane">
+        <form onsubmit="event.preventDefault(); submitRegisterFromModal();">
+          <div class="form-group">
+            <label class="filter-label" for="authRegDisplayName">Họ và tên hiển thị (*)</label>
+            <input type="text" id="authRegDisplayName" class="form-input" placeholder="Ví dụ: Hoàng Lập Trình Viên" required>
+          </div>
+
+          <div class="form-group" style="margin-top: 10px;">
+            <label class="filter-label" for="authRegUsername">Tên định danh (Username duy nhất — Kiểm tra thời gian thực *)</label>
+            <input type="text" id="authRegUsername" class="form-input" placeholder="Ví dụ: hoang_dev_2026" required oninput="handleModalUsernameCheck(this.value)">
+            <div id="authRegUsernameFeedback" style="font-size: 0.75rem; margin-top: 3px;"></div>
+          </div>
+
+          <div class="form-group" style="margin-top: 10px;">
+            <label class="filter-label" for="authRegEmail">Địa chỉ Email (*)</label>
+            <input type="email" id="authRegEmail" class="form-input" placeholder="hoang@developer.vn" required>
+          </div>
+
+          <div class="form-group" style="margin-top: 10px;">
+            <label class="filter-label" for="authRegPassword">Mật khẩu bảo mật (*)</label>
+            <input type="password" id="authRegPassword" class="form-input" placeholder="Nhập mật khẩu (tối thiểu 8 ký tự, có số &amp; chữ hoa)" required oninput="handleModalPasswordMeter(this.value)">
+            <div class="pwd-meter-bars" style="margin-top: 6px;">
+              <div id="modalPwdBar1" class="pwd-bar"></div>
+              <div id="modalPwdBar2" class="pwd-bar"></div>
+              <div id="modalPwdBar3" class="pwd-bar"></div>
+              <div id="modalPwdBar4" class="pwd-bar"></div>
+            </div>
+            <div id="authRegPasswordFeedback" style="font-size: 0.75rem; margin-top: 3px;"></div>
+          </div>
+
+          <div id="authRegError" class="auth-error-msg" style="display: none;"></div>
+
+          <button type="submit" id="authRegSubmitBtn" class="btn btn-primary btn-block" style="margin-top: 16px; min-height: 44px;">
+            [ Tiếp tục: Nhận mã xác thực OTP ]
+          </button>
+
+          <div style="text-align: center; margin-top: 14px; font-size: 0.82rem; color: var(--text-secondary);">
+            Đã có tài khoản? 
+            <a href="javascript:void(0)" onclick="switchAuthModalTab('login')" style="color: var(--purple-primary); font-weight: 600; text-decoration: underline;">
+              Đăng nhập ngay tại đây
+            </a>
+          </div>
+        </form>
+      </div>
+
+      <!-- TAB 2: FORM ĐĂNG NHẬP (CHO NGƯỜI ĐÃ CÓ TÀI KHOẢN) -->
+      <div id="authTabLoginPane" class="auth-pane" style="display: none;">
+        <form onsubmit="event.preventDefault(); submitLoginFromModal();">
+          <div class="form-group">
+            <label class="filter-label" for="authLoginIdentifier">Tên đăng nhập hoặc Email</label>
+            <input type="text" id="authLoginIdentifier" class="form-input" placeholder="Nhập username hoặc email bạn đã đăng ký" required autocomplete="username">
+          </div>
+
+          <div class="form-group" style="margin-top: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="filter-label" for="authLoginPassword" style="margin: 0;">Mật khẩu</label>
+            </div>
+            <input type="password" id="authLoginPassword" class="form-input" placeholder="Nhập mật khẩu..." required autocomplete="current-password" style="margin-top: 4px;">
+          </div>
+
+          <div id="authLoginError" class="auth-error-msg" style="display: none;"></div>
+
+          <button type="submit" id="authLoginSubmitBtn" class="btn btn-primary btn-block" style="margin-top: 16px; min-height: 44px;">
+            [ Đăng nhập ngay ]
+          </button>
+
+          <div style="text-align: center; margin-top: 16px; font-size: 0.82rem; color: var(--text-secondary);">
+            Chưa có tài khoản? 
+            <a href="javascript:void(0)" onclick="switchAuthModalTab('register')" style="color: var(--purple-primary); font-weight: 600; text-decoration: underline;">
+              Đăng ký tài khoản mới ngay
+            </a>
+          </div>
+        </form>
+      </div>
+
+      <!-- BƯỚC 3: XÁC THỰC MÃ OTP CHO ĐĂNG KÝ MỚI -->
+      <div id="authOtpStepPane" class="auth-pane" style="display: none;">
+        <div style="text-align: center; margin-bottom: 16px;">
+          <div class="badge badge-primary" style="display:inline-block; margin-bottom:8px;">[ OTP VERIFICATION ]</div>
+          <h4 style="margin: 0; font-size: 1.05rem;">Xác Thực Tài Khoản Mới</h4>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 4px;">
+            Mã OTP 6 số đã được gửi tới email: <strong id="authOtpTargetEmail" style="color: var(--text-primary);"></strong>
+          </p>
+          <div id="authOtpDemoHintBox" class="otp-demo-pill"></div>
+        </div>
+
+        <div class="otp-inputs-row" id="modalOtpInputsRow">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-input modal-otp-digit" oninput="handleModalOtpInput(this, 0)" onpaste="handleModalOtpPaste(event)" aria-label="Số 1">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-input modal-otp-digit" oninput="handleModalOtpInput(this, 1)" aria-label="Số 2">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-input modal-otp-digit" oninput="handleModalOtpInput(this, 2)" aria-label="Số 3">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-input modal-otp-digit" oninput="handleModalOtpInput(this, 3)" aria-label="Số 4">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-input modal-otp-digit" oninput="handleModalOtpInput(this, 4)" aria-label="Số 5">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-digit-input modal-otp-digit" oninput="handleModalOtpInput(this, 5)" aria-label="Số 6">
+        </div>
+
+        <div id="authOtpError" class="auth-error-msg" style="display: none;"></div>
+
+        <button type="button" id="authOtpSubmitBtn" class="btn btn-primary btn-block" onclick="submitModalOtpVerification()" style="margin-top: 14px; min-height: 44px;">
+          [ Hoàn tất Xác thực &amp; Kích hoạt Tài khoản ]
+        </button>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 0.78rem;">
+          <button type="button" class="btn-link" onclick="quickFillDemoOtp()">[ Tự động điền mã OTP ]</button>
+          <button type="button" class="btn-link" onclick="switchAuthModalTab('register')">Quay lại</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- MODAL HỘP THƯ DỰ ÁN & TIN NHẮN (EMAIL INBOX) -->
+  <div id="emailModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeEmailModal()">
+    <div class="modal-box" style="max-width: 640px;">
+      <div class="modal-header">
+        <div>
+          <h3 style="margin: 0; font-size: 1.15rem;">Hộp Thư Dự Án & Người Dùng (3 tin nhắn)</h3>
+          <small class="text-muted" style="font-size: 0.78rem;">Phản hồi hỗ trợ và yêu cầu kỹ thuật từ lập trình viên tải mã nguồn</small>
+        </div>
+        <button type="button" class="btn-close" onclick="closeEmailModal()" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="emailListContainer" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; max-height: 380px; overflow-y: auto;"></div>
+      <div id="emailReplyBox" style="display: none; border-top: 1px solid var(--border); padding-top: 12px;">
+        <h4 id="emailReplySubject" style="margin: 0 0 8px; font-size: 0.88rem; color: var(--purple-primary);"></h4>
+        <textarea id="emailReplyText" class="form-input" rows="3" placeholder="Nhập nội dung phản hồi kỹ thuật..."></textarea>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="cancelEmailReply()">Hủy</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="sendEmailReply()">[ Gửi phản hồi ]</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL LIVE CHAT CỘNG ĐỒNG -->
+  <div id="chatModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeChatModal()">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <div>
+          <h3 style="margin: 0; font-size: 1.15rem;">Live Chat Cộng Đồng OpenHub</h3>
+          <small class="text-muted" style="font-size: 0.78rem;">Kênh thảo luận trực tiếp với tác giả và người dùng</small>
+        </div>
+        <button type="button" class="btn-close" onclick="closeChatModal()" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="chatMessagesBox" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; padding: 10px; background: var(--bg-canvas); border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 12px;"></div>
+      <form onsubmit="event.preventDefault(); sendChatMessage();" style="display: flex; gap: 8px;">
+        <input type="text" id="chatMessageInput" class="form-input" placeholder="Nhập tin nhắn thảo luận..." style="flex: 1;" required>
+        <button type="submit" class="btn btn-primary">[ Gửi ]</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL HƯỚNG DẪN KỸ THUẬT & TOÀN BỘ CHỨC NĂNG HỆ THỐNG (HELP CENTER) -->
+  <div id="helpModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeHelpModal()">
+    <div class="modal-box" style="max-width: 680px; max-height: 85dvh; overflow-y: auto;">
+      <div class="modal-header">
+        <div>
+          <h3 style="margin: 0; font-size: 1.15rem;">Trung Tâm Hướng Dẫn & Tài Liệu Kỹ Thuật OpenHub v2.0</h3>
+          <small class="text-muted" style="font-size: 0.78rem;">Chi tiết cách vận hành của từng phân hệ & chức năng trên nền tảng</small>
+        </div>
+        <button type="button" class="btn-close" onclick="closeHelpModal()" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="markdown-body" style="font-size: 0.85rem; line-height: 1.6;">
+        <h4>1. Khám Phá & Bộ Lọc Dự Án (Discovery & Multi-faceted Filter)</h4>
+        <p>Tìm kiếm tức thời tên dự án, tác giả, thẻ công nghệ (React, FastAPI, Docker, Rust). Hỗ trợ lọc theo Danh mục, Giấy phép (MIT, Apache, GPL), sắp xếp theo lượt tải và điểm an toàn Health Score.</p>
+
+        <h4>2. Xem Chi Tiết, Cây Thư Mục & Trình Đọc Mã Nguồn Trực Tiếp</h4>
+        <p>Bấm vào bất kỳ dự án nào để duyệt cây thư mục không giới hạn độ sâu. Bấm vào tệp tin (<code>.py</code>, <code>.ts</code>, <code>.json</code>, <code>.md</code>) để xem mã nguồn kèm đánh số dòng và bật/tắt Word Wrap. Tải xuống tệp đơn lẻ hoặc toàn bộ gói .ZIP.</p>
+
+        <h4>3. Trình Cấu Hình Biến Môi Trường (Interactive .env Builder)</h4>
+        <p>Điền các tham số cấu hình trực tiếp trên giao diện để hệ thống tự động sinh tệp <code>.env</code> đóng gói kèm mã nguồn tải về.</p>
+
+        <h4>4. So Sánh Phiên Bản Mã Nguồn (Version Diff Viewer)</h4>
+        <p>So sánh trực quan giữa các phiên bản (v1.0.0 vs mới nhất) theo chế độ 2 cột Side-by-Side trên máy tính hoặc 1 cột Unified trên điện thoại.</p>
+
+        <h4>5. Giỏ Lưu Trữ Dự Án (Project Bundle Cart)</h4>
+        <p>Gom nhiều dự án vào giỏ và tải về tất cả chỉ với 1 cú nhấp chuột thành một tệp nén duy nhất có kèm danh mục tệp kê khai <code>BUNDLE_MANIFEST.txt</code>.</p>
+
+        <h4>6. Đăng Tải Dự Án & Quét An Toàn 4 Tầng (DevSecOps)</h4>
+        <p>Trình thuật sĩ 4 bước kiểm tra tự động: Chống Zip Bomb (tỷ lệ giải nén > 100:1), Zip Slip (thoát thư mục), quét lộ khóa nhạy cảm AWS/.env và tự động dọn sạch rác <code>node_modules</code>.</p>
+
+        <h4>7. Chuyển Tiếp Đa Thiết Bị (Cross-Device Handoff)</h4>
+        <p>Đang xem dự án trên điện thoại? Bấm <strong>[ Lấy sang PC ]</strong> để sinh Mã Kết Nối Nhanh 6 ký tự (VD: <code>HUB-849</code>) kèm mã QR để tải ngay trên máy tính mà không cần gửi link.</p>
+
+        <h4>8. Bảo Mật Tài Khoản 2 Lớp (2FA / TOTP) & Personal Access Token (PAT)</h4>
+        <p>Quản lý tài khoản tại mục Settings: Bật xác thực 2 lớp quét QR với Google Authenticator, cấp phát 10 mã khôi phục và tạo Token PAT cho dòng lệnh CLI.</p>
+      </div>
+    </div>
+  </div>
+  <div id="toastBox" class="toast-notification" style="display: none;"></div>
+  <script src="app.js"></script>
+</body>
+</html>
