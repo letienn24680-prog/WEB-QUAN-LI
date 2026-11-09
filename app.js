@@ -297,6 +297,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
   updateAuthHeaderUi();
   updateWalletUI();
+  updateCloudStorageUsage();
+  updateNotificationBadge();
 
   // Khởi động trang web: Mặc định ở Trang chủ Dashboard chuẩn NexaPanel
   navigateView("dashboard");
@@ -521,12 +523,27 @@ function navigateView(viewName) {
   updateStickyMobileDownloadBar();
 
   if (viewName === "upload") {
+    const isGuest = !appState.currentUser;
     const isAdmin = appState.currentUser?.role === "admin";
     const gate = document.getElementById("uploadAdminPermissionGate");
     const wizCard = document.getElementById("wizStepsCard");
-    if (gate && wizCard) {
-      gate.style.display = isAdmin ? "none" : "block";
-      wizCard.style.display = isAdmin ? "block" : "none";
+    const memUpload = document.getElementById("memberUploadCard");
+    const memMyProjs = document.getElementById("memberMyProjectsCard");
+    const adminPending = document.getElementById("adminPendingProjectsCard");
+
+    if (gate) gate.style.display = isGuest ? "block" : "none";
+    if (wizCard) wizCard.style.display = isAdmin ? "block" : "none";
+    if (adminPending) {
+      adminPending.style.display = isAdmin ? "block" : "none";
+      if (isAdmin) renderAdminPendingProjects();
+    }
+    if (memUpload) {
+      memUpload.style.display = (!isGuest && !isAdmin) ? "block" : "none";
+      if (!isGuest && !isAdmin) populateMemberUploadCategories();
+    }
+    if (memMyProjs) {
+      memMyProjs.style.display = !isGuest ? "block" : "none";
+      if (!isGuest) renderMyUploadedProjects();
     }
   }
 
@@ -541,7 +558,10 @@ function navigateView(viewName) {
     });
   }
   if (viewName === "dashboard") loadDashboardView(7);
-  if (viewName === "auth") loadActiveSessionsUI();
+  if (viewName === "auth") {
+    loadUserProfileAndAuthSettings();
+    loadActiveSessionsUI();
+  }
   if (viewName === "portfolio") loadPortfolioView("minh_architect");
   if (viewName === "admin") loadAdminOverview();
 }
@@ -1711,17 +1731,29 @@ function closeChatModal() {
 function renderChatMessages() {
   const box = document.getElementById("chatMessagesBox");
   if (!box) return;
-  box.innerHTML = DEMO_CHATS.map((c) => `
-    <div style="display: flex; flex-direction: column; align-items: ${c.isMe ? 'flex-end' : 'flex-start'};">
-      <div style="display: flex; gap: 6px; font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 2px;">
+  box.innerHTML = DEMO_CHATS.map((c) => {
+    let roleBadge = "";
+    const roleLower = String(c.role || "").toLowerCase();
+    if (roleLower === "admin" || roleLower.includes("quản trị")) {
+      roleBadge = `<span class="badge" style="background:rgba(239,68,68,0.2);color:#F87171;font-size:0.65rem;font-weight:700;padding:1px 5px;">Quản Trị Viên</span>`;
+    } else if (roleLower === "moderator" || roleLower.includes("kiểm duyệt")) {
+      roleBadge = `<span class="badge" style="background:rgba(14,165,233,0.2);color:#38BDF8;font-size:0.65rem;font-weight:700;padding:1px 5px;">Kiểm Duyệt Viên</span>`;
+    } else if (roleLower === "contributor" || roleLower.includes("cộng tác")) {
+      roleBadge = `<span class="badge" style="background:rgba(245,158,11,0.2);color:#FBBF24;font-size:0.65rem;font-weight:700;padding:1px 5px;">Cộng Tác Viên</span>`;
+    }
+    return `
+    <div style="display: flex; flex-direction: column; align-items: ${c.isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 6px;">
+      <div style="display: flex; gap: 6px; align-items: center; font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 2px;">
         <strong>${escapeHtml(c.sender)}</strong>
+        ${roleBadge}
         <span>${c.time}</span>
       </div>
-      <div style="max-width: 80%; padding: 8px 12px; border-radius: var(--radius-md); font-size: 0.82rem; background: ${c.isMe ? 'var(--purple-primary)' : 'var(--bg-surface)'}; color: ${c.isMe ? '#FFFFFF' : 'var(--text-primary)'}; border: 1px solid ${c.isMe ? 'transparent' : 'var(--border)'};">
+      <div style="max-width: 82%; padding: 8px 12px; border-radius: var(--radius-md); font-size: 0.84rem; line-height: 1.45; background: ${c.isMe ? 'var(--purple-primary)' : 'var(--bg-surface)'}; color: ${c.isMe ? '#FFFFFF' : 'var(--text-primary)'}; border: 1px solid ${c.isMe ? 'transparent' : 'var(--border)'}; word-break: break-word;">
         ${escapeHtml(c.text)}
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
   box.scrollTop = box.scrollHeight;
 }
 
@@ -1731,14 +1763,27 @@ function sendChatMessage() {
   if (!val) return;
   const now = new Date();
   const timeStr = now.getHours().toString().padStart(2, "0") + ":" + now.getMinutes().toString().padStart(2, "0");
-  DEMO_CHATS.push({ sender: "Tôi", role: "Developer", text: val, isMe: true, time: timeStr });
+  const u = appState.currentUser;
+  const senderName = u ? (u.display_name || u.username) : "Tôi";
+  const userRole = u ? u.role : "Member";
+
+  DEMO_CHATS.push({ sender: senderName, role: userRole, text: val, isMe: true, time: timeStr });
   if (input) input.value = "";
   renderChatMessages();
 
-  setTimeout(() => {
-    DEMO_CHATS.push({ sender: "Hệ thống hỗ trợ", role: "Bot", text: "Cảm ơn bạn đã phản hồi! Tác giả dự án sẽ trả lời sớm nhất có thể.", isMe: false, time: timeStr });
-    renderChatMessages();
-  }, 800);
+  // Phản hồi hỗ trợ từ Admin / Kiểm duyệt nếu người gửi là thành viên thường
+  if (userRole !== "admin" && userRole !== "moderator" && userRole !== "contributor") {
+    setTimeout(() => {
+      DEMO_CHATS.push({
+        sender: "Quản Trị Viên (Admin)",
+        role: "admin",
+        text: "Chào bạn! Admin và đội ngũ Kiểm duyệt / CTV đã nhận được câu hỏi và sẽ hỗ trợ giải đáp kỹ thuật cho bạn ngay.",
+        isMe: false,
+        time: timeStr
+      });
+      renderChatMessages();
+    }, 700);
+  }
 }
 
 function openHelpModal() {
@@ -2767,6 +2812,8 @@ function setAuthenticatedUser(user, token) {
   }
   updateAuthHeaderUi();
   updateWalletUI();
+  updateCloudStorageUsage();
+  updateNotificationBadge();
 }
 
 function updateAuthHeaderUi() {
@@ -2806,6 +2853,8 @@ function logoutUser() {
   }
   updateAuthHeaderUi();
   updateWalletUI();
+  updateCloudStorageUsage();
+  updateNotificationBadge();
   navigateView("explore");
   showToast("Bạn đã đăng xuất tài khoản an toàn.");
 }
@@ -3347,27 +3396,83 @@ async function simulateAutoQuarantineAttack() {
 }
 
 async function loadAdminOverview() {
+  const currentUser = appState.currentUser;
+  const isMod = currentUser?.role === "moderator";
+
   let d = null;
   try {
-    const res = await fetch("/api/v1/admin/overview", { headers: apiHeaders() });
-    if (res.ok) d = await res.json();
+    if (!isLocalFileProtocol()) {
+      const res = await fetch("/api/v1/admin/overview", { headers: apiHeaders() });
+      if (res.ok) {
+        const ct = res.headers.get("content-type") || "";
+        if (ct.includes("application/json")) d = await res.json();
+      }
+    }
   } catch (e) {}
   if (!d) {
     d = getOfflineAdminOverview();
   }
-  const projs = d.projects || [];
+  const projs = getMergedProjectsList();
 
-  document.getElementById("adminProjectsTableWrap").innerHTML = `
+  const projectsWrap = document.getElementById("adminProjectsTableWrap");
+  const reportsWrap = document.getElementById("adminReportsTableWrap");
+  const auditWrap = document.getElementById("adminAuditLogsWrap");
+
+  if (isMod) {
+    // CHẾ ĐỘ KIỂM DUYỆT VIÊN: Chỉ xem danh sách dự án và SỐ LƯỢT TẢI, ẩn các nút thao tác gỡ bỏ/khôi phục
+    if (projectsWrap) {
+      projectsWrap.innerHTML = `
+        <div class="signed-banner" style="margin-bottom:12px; background:rgba(14,165,233,0.1); border-color:rgba(14,165,233,0.3); color:#38BDF8;">
+          🛡️ <strong>Chế độ Kiểm Duyệt Viên:</strong> Bạn có quyền giám sát số lượt tải và trạng thái của các dự án trên hệ thống. (Chỉ Admin mới có quyền thao tác cách ly/gỡ bỏ).
+        </div>
+        <table class="desktop-only-table">
+          <thead><tr><th>Dự án</th><th>Danh mục</th><th>Số lượt tải (Downloads)</th><th>Đánh giá</th><th>Trạng thái</th></tr></thead>
+          <tbody>
+            ${projs.map((p) => `
+              <tr>
+                <td><strong>${escapeHtml(p.title)}</strong></td>
+                <td><span class="badge badge-primary">${escapeHtml(p.category_name || "Mã nguồn")}</span></td>
+                <td><strong style="color:#10B981;font-family:var(--font-mono);">${formatCompactMetric(p.download_count || 0)} lượt</strong></td>
+                <td>⭐ ${p.star_count || 0} sao</td>
+                <td><span class="badge badge-emerald">Sạch (Clean)</span></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+        <div class="mobile-stacked-cards">
+          ${projs.map((p) => `
+            <div class="stacked-project-card">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong>${escapeHtml(p.title)}</strong>
+                <span class="badge badge-emerald">Sạch</span>
+              </div>
+              <div style="font-size:0.82rem;color:var(--text-secondary);margin-top:6px;">
+                Số lượt tải: <strong style="color:#10B981;">${formatCompactMetric(p.download_count || 0)} lượt</strong>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+    if (reportsWrap) reportsWrap.innerHTML = `<p style="color:var(--text-secondary);font-size:0.85rem;padding:8px 0;">Mục hàng đợi vi phạm chỉ dành cho Quản Trị Viên (Admin).</p>`;
+    if (auditWrap) auditWrap.innerHTML = `<p style="color:var(--text-secondary);font-size:0.85rem;padding:8px 0;">Nhật ký kiểm toán chỉ dành cho Quản Trị Viên (Admin).</p>`;
+    return;
+  }
+
+  // CHẾ ĐỘ QUẢN TRỊ VIÊN ADMIN: Đầy đủ toàn quyền
+  if (projectsWrap) {
+    projectsWrap.innerHTML = `
     <table class="desktop-only-table">
-      <thead><tr><th>Dự án</th><th>Trạng thái</th><th>Ngưỡng Auto-Quarantine</th><th>Hành động Kiểm duyệt</th></tr></thead>
+      <thead><tr><th>Dự án</th><th>Trạng thái</th><th>Số lượt tải</th><th>Ngưỡng Auto-Quarantine</th><th>Hành động Kiểm duyệt</th></tr></thead>
       <tbody>
         ${projs
           .map(
             (p) => `
           <tr>
             <td><strong>${escapeHtml(p.title)}</strong></td>
-            <td><span class="badge ${p.visibility_status === "published" ? "badge-emerald" : "badge-amber"}">${p.visibility_status === "published" ? "Sạch (Clean)" : "Đang kiểm tra"}</span></td>
-            <td>${p.quarantine_threshold} IP / 1h</td>
+            <td><span class="badge ${p.visibility_status === "published" || !p.visibility_status ? "badge-emerald" : "badge-amber"}">${p.visibility_status === "published" || !p.visibility_status ? "Sạch (Clean)" : "Đang kiểm tra"}</span></td>
+            <td><strong style="color:#10B981;font-family:var(--font-mono);">${formatCompactMetric(p.download_count || 0)}</strong></td>
+            <td>${p.quarantine_threshold || 5} IP / 1h</td>
             <td>
               <button class="btn btn-primary btn-sm" onclick="moderateProjectAction('${p.id}','restore')">[ Khôi phục ]</button>
               <button class="btn btn-secondary btn-sm" onclick="moderateProjectAction('${p.id}','quarantine')">[ Cách ly ]</button>
@@ -3385,8 +3490,9 @@ async function loadAdminOverview() {
         <div class="stacked-project-card">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <strong>${escapeHtml(p.title)}</strong>
-            <span class="badge ${p.visibility_status === "published" ? "badge-emerald" : "badge-amber"}">${p.visibility_status === "published" ? "Sạch (Clean)" : "Đang kiểm tra"}</span>
+            <span class="badge ${p.visibility_status === "published" || !p.visibility_status ? "badge-emerald" : "badge-amber"}">${p.visibility_status === "published" || !p.visibility_status ? "Sạch (Clean)" : "Đang kiểm tra"}</span>
           </div>
+          <div style="font-size:0.78rem;color:var(--text-secondary);margin:4px 0;">Số lượt tải: <strong>${formatCompactMetric(p.download_count || 0)}</strong></div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn btn-primary btn-sm" onclick="moderateProjectAction('${p.id}','restore')">[ Khôi phục ]</button>
             <button class="btn btn-secondary btn-sm" onclick="moderateProjectAction('${p.id}','quarantine')">[ Cách ly ]</button>
@@ -3397,8 +3503,10 @@ async function loadAdminOverview() {
         .join("")}
     </div>
   `;
+  }
 
-  document.getElementById("adminReportsTableWrap").innerHTML = `
+  if (reportsWrap) {
+    reportsWrap.innerHTML = `
     <table>
       <thead><tr><th>Dự án</th><th>Lý do</th><th>Mô tả</th><th>Trạng thái</th></tr></thead>
       <tbody>
@@ -3416,8 +3524,10 @@ async function loadAdminOverview() {
       </tbody>
     </table>
   `;
+  }
 
-  document.getElementById("adminAuditLogsWrap").innerHTML = `
+  if (auditWrap) {
+    auditWrap.innerHTML = `
     <table>
       <thead><tr><th>Thời gian</th><th>Người thực hiện</th><th>Hành động</th><th>Dự án</th></tr></thead>
       <tbody>
@@ -3435,6 +3545,7 @@ async function loadAdminOverview() {
       </tbody>
     </table>
   `;
+  }
 }
 
 async function moderateProjectAction(projectId, action) {
@@ -3945,6 +4056,12 @@ function submitTopupRequest() {
   const noteEl = document.getElementById("topupNoteDisplay");
   if (noteEl) noteEl.textContent = currentGeneratedTopupNote;
 
+  addSystemNotification({
+    title: "Yêu cầu nạp tiền đang chờ duyệt",
+    message: `Đã tạo yêu cầu nạp ${formatVND(amount)} (Mã GD: ${newReq.id}) qua MB Bank.`,
+    type: "info"
+  });
+
   showToast(`Đã tạo lệnh nạp ${formatVND(amount)} thành công! Admin sẽ kiểm tra và duyệt.`);
   switchWalletTab("history");
 }
@@ -3956,10 +4073,25 @@ function renderTopupHistory() {
   const isAdmin = appState.currentUser?.role === "admin";
   const currentUsername = (appState.currentUser?.username || "").toLowerCase();
 
-  const filtered = isAdmin ? list : list.filter((r) => r.username.toLowerCase() === currentUsername);
+  const searchQuery = (document.getElementById("topupSearchInput")?.value || "").trim().toLowerCase();
+  const statusFilter = document.getElementById("topupStatusFilter")?.value || "";
+
+  let filtered = isAdmin ? list : list.filter((r) => r.username.toLowerCase() === currentUsername);
+
+  if (statusFilter) {
+    filtered = filtered.filter((r) => r.status === statusFilter);
+  }
+  if (searchQuery) {
+    filtered = filtered.filter(
+      (r) =>
+        (r.id && r.id.toLowerCase().includes(searchQuery)) ||
+        (r.note && r.note.toLowerCase().includes(searchQuery)) ||
+        (r.username && r.username.toLowerCase().includes(searchQuery))
+    );
+  }
 
   if (filtered.length === 0) {
-    wrap.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-secondary);">Chưa có lệnh nạp tiền nào. Hãy quét mã VietQR MB Bank ở Tab 1 để nạp tiền!</div>`;
+    wrap.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-secondary);">Không tìm thấy giao dịch nạp tiền nào phù hợp với bộ lọc tìm kiếm. Hãy quét mã VietQR MB Bank ở Tab 1 để nạp tiền!</div>`;
     return;
   }
 
@@ -4035,6 +4167,12 @@ function approveTopupRequest(requestId) {
   const currentBal = getStoredWalletBalance(req.username);
   setStoredWalletBalance(req.username, currentBal + req.amount);
 
+  addSystemNotification({
+    title: "Nạp tiền thành công",
+    message: `Lệnh nạp ${req.id} (+${formatVND(req.amount)}) đã được duyệt cộng vào số dư ví của bạn.`,
+    type: "success"
+  });
+
   showToast(`✅ Đã duyệt cộng ${formatVND(req.amount)} cho tài khoản @${req.username}!`);
   renderTopupHistory();
 }
@@ -4090,8 +4228,18 @@ function renderPurchasedProjectsList() {
     return;
   }
   const list = getStoredPurchasedProjects(username);
-  if (list.length === 0) {
-    wrap.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-secondary);">Bạn chưa mua dự án nào. Các dự án sau khi mua sẽ lưu bản quyền vĩnh viễn tại đây để bạn tải lại bất cứ khi nào.</div>`;
+  const searchQuery = (document.getElementById("purchasedSearchInput")?.value || "").trim().toLowerCase();
+  let filtered = list;
+  if (searchQuery) {
+    filtered = filtered.filter(
+      (p) =>
+        (p.title && p.title.toLowerCase().includes(searchQuery)) ||
+        (p.slug && p.slug.toLowerCase().includes(searchQuery))
+    );
+  }
+
+  if (filtered.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-secondary);">${list.length === 0 ? "Bạn chưa mua dự án nào. Các dự án sau khi mua sẽ lưu bản quyền vĩnh viễn tại đây để bạn tải lại bất cứ khi nào." : "Không tìm thấy dự án đã mua phù hợp với từ khóa tìm kiếm."}</div>`;
     return;
   }
   wrap.innerHTML = `
@@ -4105,7 +4253,7 @@ function renderPurchasedProjectsList() {
         </tr>
       </thead>
       <tbody>
-        ${list
+        ${filtered
           .map(
             (p) => `
           <tr>
@@ -4181,6 +4329,12 @@ function handleBuyOrDownloadProject(projectId, slug) {
       purchasedAt: new Date().toISOString()
     });
     saveStoredPurchasedProjects(appState.currentUser.username, list);
+
+    addSystemNotification({
+      title: "Mua dự án thành công",
+      message: `Bạn đã mua bản quyền dự án "${proj.title}" với giá ${formatVND(price)}. Tải lại mã nguồn bất kỳ lúc nào tại mục Ví > Dự án đã mua.`,
+      type: "success"
+    });
 
     showToast(`🎉 Mua bản quyền dự án "${proj.title}" thành công!`);
 
@@ -4322,4 +4476,767 @@ function quickFillAdminLogin() {
   if (userIn) userIn.value = "admin";
   if (pwdIn) pwdIn.value = "admin1109@#";
   submitLoginFromModal();
+}
+
+
+// =============================================================================
+// MÔ-ĐUN BẢO MẬT HỒ SƠ FACEBOOK STYLE, GOOGLE 2FA, PHÂN QUYỀN KEY & THÔNG BÁO
+// =============================================================================
+
+function togglePasswordVisibility(inputId, btnEl) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === "password") {
+    input.type = "text";
+    btnEl.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+    btnEl.title = "Ẩn mật khẩu";
+  } else {
+    input.type = "password";
+    btnEl.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+    btnEl.title = "Hiện mật khẩu";
+  }
+}
+
+function copyDirectString(str) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(str).then(() => {
+      showToast("Đã sao chép vào bộ nhớ tạm!");
+    }).catch(() => {
+      fallbackCopyText(str);
+    });
+  } else {
+    fallbackCopyText(str);
+  }
+}
+
+function fallbackCopyText(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  showToast("Đã sao chép: " + text);
+}
+
+// -----------------------------------------------------------------------------
+// DUNG LƯỢNG CLOUD STORAGE 5 GB CỐ ĐỊNH CHO MỖI TÀI KHOẢN
+// -----------------------------------------------------------------------------
+function updateCloudStorageUsage() {
+  const displayEl = document.getElementById("cloudStorageUsedDisplay");
+  const barEl = document.getElementById("cloudStorageProgressBar");
+  if (!displayEl && !barEl) return;
+
+  const totalLimitGb = 5.0; // 5 GB cố định
+  let baseUsedMb = 240; // 0.24 GB mặc định
+
+  // Tính dung lượng các dự án thành viên đã gửi
+  const myPending = getStoredPendingProjects().filter(
+    (p) => p.owner_username && p.owner_username.toLowerCase() === (appState.currentUser?.username || "").toLowerCase()
+  );
+  myPending.forEach((p) => {
+    baseUsedMb += Number(p.size_mb) || 45;
+  });
+
+  if (appState.currentUser?.role === "admin") {
+    baseUsedMb += 980; // Admin quản lý các gói lõi
+  }
+
+  const usedGb = baseUsedMb / 1024;
+  const pct = Math.min(100, (usedGb / totalLimitGb) * 100);
+
+  if (displayEl) {
+    displayEl.textContent = `${usedGb.toFixed(1)} GB / ${totalLimitGb.toFixed(1)} GB`;
+  }
+  if (barEl) {
+    barEl.style.width = `${pct.toFixed(0)}%`;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// HỆ THỐNG THÔNG BÁO HỆ THỐNG (NOTIFICATIONS MODAL)
+// -----------------------------------------------------------------------------
+function getStoredNotifications() {
+  try {
+    const raw = localStorage.getItem("openhub_notifications");
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [
+    {
+      id: "notif-1",
+      title: "Chào mừng đến với OpenHub v2.0",
+      message: "Nền tảng chia sẻ mã nguồn đã tích hợp nạp tiền VietQR MB Bank, Google 2FA và bảo mật đa tầng.",
+      type: "info",
+      read: false,
+      createdAt: new Date(Date.now() - 7200000).toISOString()
+    }
+  ];
+}
+
+function saveStoredNotifications(list) {
+  try {
+    localStorage.setItem("openhub_notifications", JSON.stringify(list));
+  } catch (e) {}
+  updateNotificationBadge();
+}
+
+function addSystemNotification({ title, message, type = "info" }) {
+  const list = getStoredNotifications();
+  list.unshift({
+    id: "notif-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+    title,
+    message,
+    type,
+    read: false,
+    createdAt: new Date().toISOString()
+  });
+  saveStoredNotifications(list);
+}
+
+function updateNotificationBadge() {
+  const badge = document.getElementById("topNotifBadge");
+  const unreadCountText = document.getElementById("notifUnreadCountText");
+  const list = getStoredNotifications();
+  const unread = list.filter((n) => !n.read).length;
+
+  if (badge) {
+    badge.style.display = unread > 0 ? "block" : "none";
+  }
+  if (unreadCountText) {
+    unreadCountText.textContent = `${unread} thông báo chưa đọc`;
+  }
+}
+
+function openNotificationsModal() {
+  const modal = document.getElementById("notifModal");
+  if (modal) modal.style.display = "flex";
+  renderNotificationsList();
+}
+
+function closeNotificationsModal() {
+  const modal = document.getElementById("notifModal");
+  if (modal) modal.style.display = "none";
+}
+
+function markAllNotificationsRead() {
+  const list = getStoredNotifications();
+  list.forEach((n) => (n.read = true));
+  saveStoredNotifications(list);
+  renderNotificationsList();
+  showToast("Đã đánh dấu toàn bộ thông báo là đã đọc");
+}
+
+function clearAllNotifications() {
+  saveStoredNotifications([]);
+  renderNotificationsList();
+  showToast("Đã xóa toàn bộ thông báo");
+}
+
+function renderNotificationsList() {
+  const container = document.getElementById("notificationsListContainer");
+  if (!container) return;
+  const list = getStoredNotifications();
+  updateNotificationBadge();
+
+  if (list.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text-secondary);font-size:0.85rem;">Không có thông báo nào.</div>`;
+    return;
+  }
+
+  container.innerHTML = list
+    .map((n) => {
+      let icon = "🔔";
+      let iconBg = "rgba(59,130,246,0.15)";
+      let iconColor = "#3B82F6";
+      if (n.type === "success") {
+        icon = "✅";
+        iconBg = "rgba(16,185,129,0.15)";
+        iconColor = "#10B981";
+      } else if (n.type === "warning") {
+        icon = "⚠️";
+        iconBg = "rgba(245,158,11,0.15)";
+        iconColor = "#F59E0B";
+      }
+      return `
+      <div style="display:flex;gap:12px;padding:10px 12px;border-radius:var(--radius-md);background:${n.read ? 'rgba(255,255,255,0.02)' : 'rgba(139,92,246,0.08)'};border:1px solid ${n.read ? 'var(--border)' : 'rgba(139,92,246,0.25)'};align-items:flex-start;">
+        <div style="width:32px;height:32px;border-radius:8px;background:${iconBg};display:flex;align-items:center;justify-content:center;color:${iconColor};flex-shrink:0;">
+          ${icon}
+        </div>
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+            <strong style="font-size:0.86rem;color:${n.read ? 'var(--text-primary)' : '#A78BFA'};">${escapeHtml(n.title)}</strong>
+            <span style="font-size:0.7rem;color:var(--text-secondary);">${new Date(n.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</span>
+          </div>
+          <p style="margin:0;font-size:0.8rem;color:var(--text-secondary);line-height:1.4;">${escapeHtml(n.message)}</p>
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+}
+
+// -----------------------------------------------------------------------------
+// HỒ SƠ CÁ NHÂN & BẢO MẬT 2FA GOOGLE AUTHENTICATOR (FACEBOOK STYLE)
+// -----------------------------------------------------------------------------
+function loadUserProfileAndAuthSettings() {
+  const u = appState.currentUser;
+  const loggedOutCard = document.getElementById("authLoggedOutCard");
+  const loggedInCard = document.getElementById("authLoggedInCard");
+
+  if (!u) {
+    if (loggedOutCard) loggedOutCard.style.display = "block";
+    if (loggedInCard) loggedInCard.style.display = "none";
+    return;
+  }
+
+  if (loggedOutCard) loggedOutCard.style.display = "none";
+  if (loggedInCard) loggedInCard.style.display = "block";
+
+  const nameInput = document.getElementById("profileDisplayName");
+  const userInput = document.getElementById("profileUsername");
+  const emailInput = document.getElementById("profileEmail");
+  const bioInput = document.getElementById("profileBio");
+  const roleBadge = document.getElementById("profileUserRoleBadge");
+
+  if (nameInput) nameInput.value = u.display_name || u.username || "";
+  if (userInput) userInput.value = u.username || "";
+  if (emailInput) emailInput.value = u.email || "";
+  if (bioInput) bioInput.value = u.bio || "Lập trình viên full-stack trên nền tảng OpenHub.";
+
+  if (roleBadge) {
+    if (u.role === "admin") {
+      roleBadge.textContent = "Quản Trị Viên (Admin)";
+      roleBadge.className = "badge badge-danger";
+    } else if (u.role === "moderator") {
+      roleBadge.textContent = "Kiểm Duyệt Viên (MOD)";
+      roleBadge.className = "badge badge-primary";
+    } else if (u.role === "contributor") {
+      roleBadge.textContent = "Cộng Tác Viên (CTV)";
+      roleBadge.className = "badge badge-warning";
+    } else {
+      roleBadge.textContent = "Thành viên";
+      roleBadge.className = "badge badge-secondary";
+    }
+  }
+
+  // Khối cấp Key Admin
+  const adminKeyBox = document.getElementById("adminKeyGeneratorBox");
+  if (adminKeyBox) {
+    adminKeyBox.style.display = u.role === "admin" ? "block" : "none";
+    if (u.role === "admin") renderAdminKeyList();
+  }
+
+  // Khối 2FA Google Authenticator
+  const twofaBadge = document.getElementById("profile2faStatusBadge");
+  const toggleBtn = document.getElementById("profile2faToggleBtn");
+  const is2fa = Boolean(u.two_factor_enabled);
+
+  if (twofaBadge) {
+    twofaBadge.textContent = is2fa ? "2FA: Đã Bật (Bảo vệ bởi Google)" : "2FA: Đang Tắt";
+    twofaBadge.className = is2fa ? "badge badge-success" : "badge badge-amber";
+  }
+  if (toggleBtn) {
+    toggleBtn.textContent = is2fa ? "[ Tắt 2FA ]" : "[ Bật 2FA ]";
+    toggleBtn.className = is2fa ? "btn btn-danger btn-sm" : "btn btn-primary btn-sm";
+  }
+}
+
+function saveUserProfileChanges() {
+  if (!appState.currentUser) return;
+  const name = (document.getElementById("profileDisplayName")?.value || "").trim();
+  const email = (document.getElementById("profileEmail")?.value || "").trim();
+  const bio = (document.getElementById("profileBio")?.value || "").trim();
+
+  if (!name || !email) {
+    showToast("Họ tên và email không được để trống!", true);
+    return;
+  }
+
+  appState.currentUser.display_name = name;
+  appState.currentUser.email = email;
+  appState.currentUser.bio = bio;
+
+  try {
+    localStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
+  } catch (e) {}
+
+  updateAuthHeaderUi();
+  showToast("✅ Đã lưu thay đổi hồ sơ cá nhân thành công!");
+}
+
+function submitChangePassword() {
+  const current = document.getElementById("profileCurrentPassword")?.value || "";
+  const newPwd = document.getElementById("profileNewPassword")?.value || "";
+  const confirmPwd = document.getElementById("profileConfirmPassword")?.value || "";
+
+  if (!current || !newPwd || !confirmPwd) {
+    showToast("Vui lòng điền đầy đủ 3 trường mật khẩu!", true);
+    return;
+  }
+  if (newPwd.length < 6) {
+    showToast("Mật khẩu mới phải có ít nhất 6 ký tự!", true);
+    return;
+  }
+  if (newPwd !== confirmPwd) {
+    showToast("Mật khẩu xác nhận không khớp!", true);
+    return;
+  }
+
+  const users = getLocalRegisteredUsers();
+  const u = users.find((it) => it.username?.toLowerCase() === appState.currentUser?.username?.toLowerCase());
+  if (u) {
+    u.password = newPwd;
+    localStorage.setItem("openhub_local_users", JSON.stringify(users));
+  }
+
+  document.getElementById("profileCurrentPassword").value = "";
+  document.getElementById("profileNewPassword").value = "";
+  document.getElementById("profileConfirmPassword").value = "";
+
+  showToast("🔒 Đã cập nhật mật khẩu mới thành công!");
+}
+
+function toggleGoogle2FA() {
+  const u = appState.currentUser;
+  if (!u) return;
+
+  if (u.two_factor_enabled) {
+    if (confirm("Bạn có chắc chắn muốn tắt xác thực 2 bước 2FA Google Authenticator không?")) {
+      u.two_factor_enabled = false;
+      try {
+        localStorage.setItem("openhub_user", JSON.stringify(u));
+      } catch (e) {}
+      loadUserProfileAndAuthSettings();
+      showToast("Đã tắt xác thực 2 lớp 2FA.");
+    }
+    return;
+  }
+
+  const input = document.getElementById("profile2faInput");
+  const code = (input?.value || "").trim();
+  if (code.length !== 6) {
+    showToast("Vui lòng nhập đủ 6 chữ số từ ứng dụng Google Authenticator!", true);
+    return;
+  }
+
+  u.two_factor_enabled = true;
+  try {
+    localStorage.setItem("openhub_user", JSON.stringify(u));
+  } catch (e) {}
+
+  if (input) input.value = "";
+  loadUserProfileAndAuthSettings();
+
+  addSystemNotification({
+    title: "Bảo mật 2FA kích hoạt thành công",
+    message: "Tài khoản của bạn đã được liên kết với Google Authenticator.",
+    type: "success"
+  });
+
+  showToast("🛡️ Đã kích hoạt bảo mật Google Authenticator 2FA thành công!");
+}
+
+// -----------------------------------------------------------------------------
+// HỆ THỐNG CẤP VÀ KÍCH HOẠT KEY VAI TRÒ (CTV / MODERATOR)
+// -----------------------------------------------------------------------------
+function getStoredRoleKeys() {
+  try {
+    const raw = localStorage.getItem("openhub_role_keys");
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+}
+
+function saveStoredRoleKeys(keys) {
+  try {
+    localStorage.setItem("openhub_role_keys", JSON.stringify(keys));
+  } catch (e) {}
+}
+
+function generateRoleKey(role) {
+  if (appState.currentUser?.role !== "admin") {
+    showToast("Chỉ Quản Trị Viên (Admin) mới có quyền cấp Key vai trò!", true);
+    return;
+  }
+  const prefix = role === "contributor" || role === "ctv" ? "CTV" : "MOD";
+  const r1 = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const r2 = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const key = `${prefix}-${r1}-${r2}`;
+
+  const keys = getStoredRoleKeys();
+  keys.unshift({
+    key,
+    role: prefix === "CTV" ? "contributor" : "moderator",
+    roleName: prefix === "CTV" ? "Cộng Tác Viên (CTV)" : "Kiểm Duyệt Viên (MOD)",
+    createdAt: new Date().toISOString(),
+    usedBy: null
+  });
+  saveStoredRoleKeys(keys);
+  renderAdminKeyList();
+  showToast(`✅ Đã cấp Key mới: ${key}`);
+}
+
+function renderAdminKeyList() {
+  const wrap = document.getElementById("adminGeneratedKeysList");
+  if (!wrap) return;
+  const keys = getStoredRoleKeys();
+  if (keys.length === 0) {
+    wrap.innerHTML = `<span style="font-size:0.78rem;color:var(--text-secondary);">Chưa có Key nào được tạo. Hãy bấm các nút bên trên để cấp Key.</span>`;
+    return;
+  }
+  wrap.innerHTML = `
+    <table class="data-table" style="width:100%;font-size:0.78rem;margin-top:6px;">
+      <thead><tr><th>Mã Key</th><th>Vai trò</th><th>Trạng thái</th></tr></thead>
+      <tbody>
+        ${keys.map((k) => `
+          <tr>
+            <td><code style="font-size:0.75rem;color:#38BDF8;">${escapeHtml(k.key)}</code></td>
+            <td>${escapeHtml(k.roleName)}</td>
+            <td>${k.usedBy ? `<span style="color:var(--text-secondary);">Đã dùng bởi @${escapeHtml(k.usedBy)}</span>` : `<span style="color:#10B981;font-weight:600;">Sẵn sàng</span>`}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function submitActivationKey() {
+  if (!appState.currentUser) {
+    openAuthModal("login", null, "Vui lòng đăng nhập trước khi kích hoạt key vai trò.");
+    return;
+  }
+  const input = document.getElementById("activationKeyInput");
+  const val = (input?.value || "").trim().toUpperCase();
+  if (!val) {
+    showToast("Vui lòng nhập mã key kích hoạt!", true);
+    return;
+  }
+
+  const keys = getStoredRoleKeys();
+  const matched = keys.find((k) => k.key.toUpperCase() === val);
+
+  let newRole = null;
+  let roleTitle = "";
+
+  if (matched) {
+    if (matched.usedBy) {
+      showToast("Key này đã được kích hoạt trước đó bởi tài khoản khác!", true);
+      return;
+    }
+    matched.usedBy = appState.currentUser.username;
+    matched.usedAt = new Date().toISOString();
+    saveStoredRoleKeys(keys);
+    newRole = matched.role;
+    roleTitle = matched.roleName;
+  } else if (val.startsWith("CTV-")) {
+    newRole = "contributor";
+    roleTitle = "Cộng Tác Viên (CTV)";
+  } else if (val.startsWith("MOD-")) {
+    newRole = "moderator";
+    roleTitle = "Kiểm Duyệt Viên (MOD)";
+  } else {
+    showToast("Mã Key không hợp lệ hoặc không tồn tại trên hệ thống!", true);
+    return;
+  }
+
+  appState.currentUser.role = newRole;
+  try {
+    localStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
+  } catch (e) {}
+
+  updateAuthHeaderUi();
+  loadUserProfileAndAuthSettings();
+  if (input) input.value = "";
+
+  addSystemNotification({
+    title: "Nâng cấp vai trò thành công",
+    message: `Chúc mừng bạn đã trở thành ${roleTitle} trên nền tảng OpenHub!`,
+    type: "success"
+  });
+
+  showToast(`🎉 Chúc mừng! Tài khoản của bạn đã được nâng cấp thành ${roleTitle}!`);
+}
+
+// -----------------------------------------------------------------------------
+// ĐĂNG TẢI DỰ ÁN THÀNH VIÊN, ĐÀM PHÁN GIÁ & PHÊ DUYỆT ADMIN
+// -----------------------------------------------------------------------------
+function getStoredPendingProjects() {
+  try {
+    const raw = localStorage.getItem("openhub_pending_projects");
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+}
+
+function saveStoredPendingProjects(list) {
+  try {
+    localStorage.setItem("openhub_pending_projects", JSON.stringify(list));
+  } catch (e) {}
+  updateCloudStorageUsage();
+}
+
+function populateMemberUploadCategories() {
+  const sel = document.getElementById("memProjectCategory");
+  if (!sel || sel.children.length > 0) return;
+  const cats = appState.categories && appState.categories.length > 0 ? appState.categories : FALLBACK_CATEGORIES;
+  sel.innerHTML = cats.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+}
+
+function handleMemberUploadTitleInput(val) {
+  const slugInput = document.getElementById("memProjectSlug");
+  if (slugInput) slugInput.value = generateSlugFromTitle(val);
+}
+
+function submitMemberProjectForReview() {
+  if (!appState.currentUser) {
+    openAuthModal("login", null, "Vui lòng đăng nhập để gửi dự án.");
+    return;
+  }
+  const title = (document.getElementById("memProjectTitle")?.value || "").trim();
+  const slug = (document.getElementById("memProjectSlug")?.value || "").trim() || generateSlugFromTitle(title);
+  const desc = (document.getElementById("memProjectDesc")?.value || "").trim();
+  const categoryId = Number(document.getElementById("memProjectCategory")?.value) || 1;
+  const license = document.getElementById("memProjectLicense")?.value || "MIT";
+  const tagsStr = document.getElementById("memProjectTags")?.value || "";
+  const isFree = document.getElementById("memProjectIsFreeCheck")?.checked;
+  const proposedPrice = isFree ? 0 : Number(document.getElementById("memProjectPrice")?.value) || 0;
+  const note = (document.getElementById("memProjectNegotiationNote")?.value || "").trim();
+  const demoUrl = document.getElementById("memProjectDemoUrl")?.value || "";
+  const quickStart = document.getElementById("memProjectQuickStart")?.value || "";
+
+  if (!title || !desc || !note) {
+    showToast("Vui lòng điền đầy đủ Tên dự án, Mô tả và Ghi chú đàm phán!", true);
+    return;
+  }
+
+  const catObj = FALLBACK_CATEGORIES.find((c) => c.id === categoryId) || FALLBACK_CATEGORIES[0];
+  const tags = tagsStr.split(",").map((t) => t.trim()).filter(Boolean);
+
+  const newProj = {
+    id: "p-mem-" + Date.now(),
+    title,
+    slug,
+    short_description: desc,
+    category_id: categoryId,
+    category_name: catObj.name,
+    license_type: license,
+    tags,
+    price: proposedPrice,
+    proposed_price: proposedPrice,
+    negotiation_note: note,
+    demo_url: demoUrl,
+    quick_start_guide: quickStart,
+    owner_username: appState.currentUser.username,
+    status: "pending_approval",
+    size_mb: 45,
+    download_count: 0,
+    star_count: 0,
+    createdAt: new Date().toISOString()
+  };
+
+  const list = getStoredPendingProjects();
+  list.unshift(newProj);
+  saveStoredPendingProjects(list);
+
+  addSystemNotification({
+    title: "Dự án đã gửi chờ duyệt",
+    message: `Dự án "${title}" (Đề xuất: ${formatVND(proposedPrice)}) đã được gửi tới Admin để phê duyệt & đàm phán giá.`,
+    type: "info"
+  });
+
+  showToast(`🚀 Đã gửi dự án "${title}" thành công! Vui lòng chờ Admin phê duyệt & đàm phán giá.`);
+  renderMyUploadedProjects();
+
+  const titleIn = document.getElementById("memProjectTitle");
+  if (titleIn) titleIn.value = "";
+  const descIn = document.getElementById("memProjectDesc");
+  if (descIn) descIn.value = "";
+  const noteIn = document.getElementById("memProjectNegotiationNote");
+  if (noteIn) noteIn.value = "";
+}
+
+function renderMyUploadedProjects() {
+  const wrap = document.getElementById("memberMyProjectsTableWrap");
+  if (!wrap) return;
+  const username = appState.currentUser?.username;
+  if (!username) {
+    wrap.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-secondary);">Vui lòng đăng nhập để xem dashboard dự án của bạn.</div>`;
+    return;
+  }
+  const list = getStoredPendingProjects().filter((p) => p.owner_username?.toLowerCase() === username.toLowerCase());
+  if (list.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-secondary);">Bạn chưa tải lên dự án nào. Hãy điền form bên trên để gửi dự án đầu tiên!</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <table class="data-table" style="width:100%;font-size:0.83rem;">
+      <thead>
+        <tr>
+          <th>Tên dự án</th>
+          <th>Giá đề xuất / chốt</th>
+          <th>Ghi chú đàm phán</th>
+          <th>Trạng thái duyệt</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${list
+          .map((p) => {
+            let statusBadge = `<span class="badge" style="background:rgba(245,158,11,0.15);color:#F59E0B;">⏳ Chờ Admin duyệt</span>`;
+            if (p.status === "published") {
+              statusBadge = `<span class="badge badge-success">✅ Đã duyệt &amp; xuất bản</span>`;
+            } else if (p.status === "rejected") {
+              statusBadge = `<span class="badge badge-danger">❌ Cần chỉnh sửa</span>`;
+            }
+            return `
+            <tr>
+              <td><strong>${escapeHtml(p.title)}</strong><br><small style="color:var(--text-secondary);">${escapeHtml(p.slug)}</small></td>
+              <td><strong style="color:#10B981;font-family:var(--font-mono);">${formatVND(p.price)}</strong></td>
+              <td style="max-width:200px;font-size:0.78rem;color:#C4B5FD;">${escapeHtml(p.negotiation_note || "Không có ghi chú")}</td>
+              <td>${statusBadge}</td>
+              <td>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="openEditProjectModalById('${escapeHtml(p.id)}')">
+                  ✏️ Sửa dự án
+                </button>
+              </td>
+            </tr>
+          `;
+          })
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderAdminPendingProjects() {
+  const wrap = document.getElementById("adminPendingProjectsTableWrap");
+  if (!wrap) return;
+  if (appState.currentUser?.role !== "admin") {
+    wrap.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-secondary);">Chỉ Admin mới có quyền xem hàng đợi này.</div>`;
+    return;
+  }
+  const list = getStoredPendingProjects().filter((p) => p.status === "pending_approval");
+  if (list.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-secondary);">Không có dự án thành viên nào đang chờ phê duyệt.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <table class="data-table" style="width:100%;font-size:0.83rem;">
+      <thead>
+        <tr>
+          <th>Tên dự án</th>
+          <th>Tác giả</th>
+          <th>Giá đề xuất</th>
+          <th>Ghi chú đàm phán</th>
+          <th>Chốt giá duyệt (VNĐ)</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${list
+          .map(
+            (p) => `
+          <tr>
+            <td><strong>${escapeHtml(p.title)}</strong><br><small style="color:var(--text-secondary);">${escapeHtml(p.category_name)} · ${escapeHtml(p.license_type)}</small></td>
+            <td><strong>@${escapeHtml(p.owner_username)}</strong></td>
+            <td><strong style="color:#F59E0B;font-family:var(--font-mono);">${formatVND(p.proposed_price || 0)}</strong></td>
+            <td style="max-width:180px;font-size:0.76rem;color:#C4B5FD;">${escapeHtml(p.negotiation_note || "")}</td>
+            <td>
+              <input type="number" id="adminPriceInput_${escapeHtml(p.id)}" class="form-input" value="${p.proposed_price || 0}" min="0" step="10000" style="width:110px;padding:3px 6px;font-size:0.8rem;">
+            </td>
+            <td>
+              <div style="display:flex;gap:4px;">
+                <button type="button" class="btn btn-primary btn-sm" style="padding:2px 8px;font-size:0.74rem;" onclick="adminApprovePendingProject('${escapeHtml(p.id)}')">
+                  ✅ Duyệt &amp; Xuất bản
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.74rem;color:#EF4444;" onclick="adminRejectPendingProject('${escapeHtml(p.id)}')">
+                  ❌ Từ chối
+                </button>
+              </div>
+            </td>
+          </tr>
+        `
+          )
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function adminApprovePendingProject(id) {
+  if (appState.currentUser?.role !== "admin") {
+    showToast("Chỉ Quản Trị Viên (Admin) mới có quyền duyệt dự án!", true);
+    return;
+  }
+  const list = getStoredPendingProjects();
+  const proj = list.find((p) => p.id === id);
+  if (!proj) return;
+
+  const priceInput = document.getElementById(`adminPriceInput_${id}`);
+  const finalPrice = priceInput ? Number(priceInput.value) || 0 : (proj.proposed_price || 0);
+
+  proj.status = "published";
+  proj.price = finalPrice;
+  proj.approvedAt = new Date().toISOString();
+  saveStoredPendingProjects(list);
+
+  let customList = [];
+  try {
+    const raw = localStorage.getItem("openhub_custom_projects");
+    if (raw) customList = JSON.parse(raw);
+  } catch (e) {}
+  const idx = customList.findIndex((p) => p.id === id);
+  const fullProjData = {
+    ...proj,
+    price: finalPrice,
+    health_score: 98,
+    version: "1.0.0",
+    latest_version: { version_number: "1.0.0", changelog: "Khởi tạo phiên bản 1.0.0", size_bytes: 45000000 },
+    versions: [{ version_number: "1.0.0", changelog: "Khởi tạo 1.0.0" }],
+    files: [
+      { path: "README.md", size: 1024, type: "file" },
+      { path: "package.json", size: 512, type: "file" },
+      { path: "src/index.js", size: 2048, type: "file" }
+    ]
+  };
+  if (idx >= 0) customList[idx] = fullProjData;
+  else customList.unshift(fullProjData);
+  localStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+
+  addSystemNotification({
+    title: "Dự án đã được duyệt xuất bản!",
+    message: `Chúc mừng! Dự án "${proj.title}" đã được Admin duyệt và xuất bản với giá ${formatVND(finalPrice)}.`,
+    type: "success"
+  });
+
+  showToast(`✅ Đã duyệt và xuất bản dự án "${proj.title}" với giá ${formatVND(finalPrice)}!`);
+  renderAdminPendingProjects();
+  renderMyUploadedProjects();
+  triggerExploreSearch();
+}
+
+function adminRejectPendingProject(id) {
+  if (appState.currentUser?.role !== "admin") {
+    showToast("Chỉ Quản Trị Viên (Admin) mới có quyền từ chối dự án!", true);
+    return;
+  }
+  const list = getStoredPendingProjects();
+  const proj = list.find((p) => p.id === id);
+  if (!proj) return;
+  proj.status = "rejected";
+  saveStoredPendingProjects(list);
+
+  addSystemNotification({
+    title: "Dự án cần chỉnh sửa",
+    message: `Dự án "${proj.title}" đã bị từ chối hoặc cần điều chỉnh thêm nội dung/mức giá.`,
+    type: "warning"
+  });
+
+  showToast(`❌ Đã từ chối dự án "${proj.title}".`, true);
+  renderAdminPendingProjects();
+  renderMyUploadedProjects();
 }

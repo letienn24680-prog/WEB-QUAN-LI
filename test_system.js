@@ -556,6 +556,18 @@ async function runAllTests() {
     assert.ok(jsText.includes("approveTopupRequest"), "app.js: Phải có hàm approveTopupRequest dành cho Admin");
     assert.ok(jsText.includes("handleBuyOrDownloadProject"), "app.js: Phải có hàm handleBuyOrDownloadProject");
     assert.ok(jsText.includes("saveEditProject"), "app.js: Phải có hàm saveEditProject cho Admin");
+
+    // 6. Kiểm tra các cải tiến theo 10 yêu cầu người dùng
+    assert.ok(htmlText.includes("password-toggle-btn") && jsText.includes("togglePasswordVisibility"), "Phải có nút con mắt ẩn/hiện mật khẩu");
+    assert.ok(htmlText.includes("authLoggedInCard") && jsText.includes("loadUserProfileAndAuthSettings"), "Phải có màn hình hồ sơ bảo mật khi đã đăng nhập");
+    assert.ok(htmlText.includes("Google Authenticator") && jsText.includes("toggleGoogle2FA"), "Phải có xác thực 2FA chuẩn Google Authenticator");
+    assert.ok(htmlText.includes("0866517501") && htmlText.includes("letienn24680@gmail.com"), "Phải có thông tin liên hệ Zalo, Facebook, Email");
+    assert.ok(jsText.includes("generateRoleKey") && jsText.includes("submitActivationKey"), "Phải có hệ thống cấp và kích hoạt Key CTV/MOD");
+    assert.ok(htmlText.includes("memberUploadCard") && jsText.includes("submitMemberProjectForReview"), "Phải có form thành viên đăng tải dự án & đàm phán giá");
+    assert.ok(htmlText.includes("adminPendingProjectsCard") && jsText.includes("adminApprovePendingProject"), "Phải có dashboard Admin duyệt & chốt giá dự án thành viên");
+    assert.ok(htmlText.includes("cloudStorageUsedDisplay") && jsText.includes("updateCloudStorageUsage"), "Phải có quản lý dung lượng Cloud Storage 5 GB");
+    assert.ok(htmlText.includes("topupSearchInput") && htmlText.includes("purchasedSearchInput"), "Phải có ô tra cứu chi tiết nạp tiền & dự án đã mua");
+    assert.ok(htmlText.includes("notifModal") && jsText.includes("addSystemNotification"), "Phải có hệ thống thông báo logic");
   });
 
   console.log("\n======================================================================");

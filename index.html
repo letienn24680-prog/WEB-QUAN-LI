@@ -146,17 +146,17 @@
         </button>
       </nav>
 
-      <!-- Hộp dung lượng lưu trữ cuối Sidebar -->
+      <!-- Hộp dung lượng lưu trữ cuối Sidebar (Cố định 5 GB cho mỗi tài khoản) -->
       <div class="sidebar-storage-box">
         <div class="storage-row">
           <span>Cloud Storage</span>
-          <strong class="tabular-nums">1.2 GB / 5 GB</strong>
+          <strong id="cloudStorageUsedDisplay" class="tabular-nums">1.2 GB / 5.0 GB</strong>
         </div>
         <div class="storage-bar">
-          <div class="storage-fill" style="width: 24%;"></div>
+          <div id="cloudStorageProgressBar" class="storage-fill" style="width: 24%;"></div>
         </div>
-        <div class="storage-meta">
-          S3 Edge CDN: Active
+        <div class="storage-meta" style="font-size: 0.72rem; color: var(--text-secondary);">
+          Hạn mức: 5 GB cho mỗi tài khoản
         </div>
       </div>
     </aside>
@@ -188,9 +188,9 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </button>
 
-          <button class="top-icon-btn top-icon-circle hide-xs" style="position: relative;" onclick="showToast('Thông báo: 5 đơn hàng mới cần xử lý.')" title="Thông báo mới">
+          <button id="topNotifBtn" class="top-icon-btn top-icon-circle hide-xs" style="position: relative;" onclick="openNotificationsModal()" title="Thông báo hệ thống">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span style="position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; background: #EF4444; border-radius: 50%; box-shadow: 0 0 8px #EF4444;"></span>
+            <span id="topNotifBadge" style="position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; background: #EF4444; border-radius: 50%; box-shadow: 0 0 8px #EF4444; display: none;"></span>
           </button>
 
           <button id="topWalletBtn" class="top-icon-btn top-wallet-btn" onclick="openWalletModal()" title="Ví điện tử, nạp tiền MB Bank &amp; tra cứu">
@@ -717,19 +717,18 @@
         </section>
 
         <!-- =============================================================== -->
-        <!-- MÀN HÌNH 4: HỆ THỐNG ĐĂNG KÝ, OTP 6 SỐ, ĐĂNG NHẬP, 2FA & PAT    -->
+        <!-- MÀN HÌNH 4: HỆ THỐNG ĐỊNH DANH, HỒ SƠ BẢO MẬT, 2FA GOOGLE & IAM  -->
         <!-- =============================================================== -->
         <section id="viewAuth" class="view-section" style="display: none;">
-          <div class="wizard-card">
+          <!-- 1. GIAO DIỆN KHI CHƯA ĐĂNG NHẬP -->
+          <div id="authLoggedOutCard" class="wizard-card" style="display: none;">
             <div class="wizard-header">
-              <h2>Hệ Thống Định Danh, Đăng Ký OTP Kép, Bảo Mật 2FA & Quản Lý Phiên (IAM)</h2>
-              <p>Kiểm tra trùng lặp Username thời gian thực (300ms), đo độ mạnh mật khẩu 4 vạch, xác thực OTP 6 ô vuông + Magic Link, xoay vòng Refresh Token và quản lý Personal Access Tokens.</p>
+              <h2>Hệ Thống Định Danh, Đăng Ký OTP Kép &amp; Đăng Nhập</h2>
+              <p>Vui lòng đăng nhập hoặc đăng ký tài khoản mới để quản lý hồ sơ và bảo mật.</p>
             </div>
-
             <div class="docs-grid">
-              <!-- Cột Trái: Đăng ký + OTP 6 số -->
               <div class="doc-card auth-3d-stage" style="padding:1.25rem; overflow-x:hidden;">
-                <h3>1. Đăng ký Tài khoản & Kiểm tra Thời gian thực</h3>
+                <h3>1. Đăng ký Tài khoản &amp; Kiểm tra Thời gian thực</h3>
                 <div id="authStepRegisterForm" class="auth-step-pane">
                   <div class="form-group" style="margin-top:0.75rem;">
                     <label class="filter-label" for="regUsername">Tên định danh duy nhất (Username — Kiểm tra debounced 300ms)</label>
@@ -744,7 +743,12 @@
 
                   <div class="form-group">
                     <label class="filter-label" for="regPassword">Mật khẩu chuẩn bảo mật (5 tiêu chí)</label>
-                    <input type="password" id="regPassword" class="form-input" placeholder="Nhập mật khẩu (ví dụ: UltraSecure#2026)" oninput="handleRealtimePasswordMeter(this.value)">
+                    <div class="password-input-wrap">
+                      <input type="password" id="regPassword" class="form-input" placeholder="Nhập mật khẩu (ví dụ: UltraSecure#2026)" oninput="handleRealtimePasswordMeter(this.value)">
+                      <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('regPassword', this)" title="Hiện / Ẩn mật khẩu" aria-label="Hiện mật khẩu">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      </button>
+                    </div>
                     <div class="pwd-meter-bars">
                       <div id="pwdBar1" class="pwd-bar"></div>
                       <div id="pwdBar2" class="pwd-bar"></div>
@@ -755,7 +759,7 @@
                   </div>
 
                   <button id="regSubmitBtn" class="btn btn-primary btn-block" onclick="submitRegistrationForm()">
-                    [ Đăng ký & Nhận mã OTP 6 số ]
+                    [ Đăng ký &amp; Nhận mã OTP 6 số ]
                   </button>
                 </div>
 
@@ -782,17 +786,164 @@
                 </div>
               </div>
 
-              <!-- Cột Phải: Bảo mật 2FA, Quản lý Thiết bị & PAT -->
+              <div class="doc-card" style="padding:1.25rem; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+                <h3>Đã Có Tài Khoản?</h3>
+                <p style="color:var(--text-secondary); font-size:0.85rem; margin:8px 0 16px;">Đăng nhập ngay để vào trung tâm quản lý hồ sơ và bảo mật.</p>
+                <button type="button" class="btn btn-primary" onclick="openAuthModal('login')">
+                  [ Mở Cửa Sổ Đăng Nhập ]
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. GIAO DIỆN KHI ĐÃ ĐĂNG NHẬP: CHỈNH SỬA HỒ SƠ & BẢO MẬT 2FA GOOGLE -->
+          <div id="authLoggedInCard" class="wizard-card">
+            <div class="wizard-header">
+              <h2>Trung Tâm Quản Lý Tài Khoản, Hồ Sơ &amp; Bảo Mật 2FA Google</h2>
+              <p>Chỉnh sửa hồ sơ cá nhân, đổi mật khẩu bảo mật (Facebook Style), kích hoạt xác thực 2 lớp qua Google Authenticator và nâng cấp vai trò.</p>
+            </div>
+
+            <div class="docs-grid">
+              <!-- Cột Trái: Chỉnh sửa hồ sơ, Đổi mật khẩu & Kích hoạt Key -->
               <div class="doc-card" style="padding:1.25rem;">
-                <h3>2. Bảo mật 2 Lớp (2FA / TOTP), Phiên Thiết bị & Khóa API (PAT)</h3>
-                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:0.75rem 0;">
-                  <button class="btn btn-primary btn-sm" onclick="enable2FAFromUI()">[ Bật 2FA & Tạo 10 mã dự phòng ]</button>
-                  <button class="btn btn-secondary btn-sm" onclick="generatePatFromUI()">Tạo Personal Access Token (PAT)</button>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                  <h3 style="margin:0;">1. Hồ Sơ &amp; Bảo Mật Mật Khẩu</h3>
+                  <span id="profileUserRoleBadge" class="badge badge-primary">Thành viên</span>
                 </div>
+
+                <form onsubmit="event.preventDefault(); saveUserProfileChanges();">
+                  <div class="form-group">
+                    <label class="filter-label" for="profileDisplayName">Họ và tên hiển thị</label>
+                    <input type="text" id="profileDisplayName" class="form-input" required>
+                  </div>
+
+                  <div class="form-grid-2" style="margin-top:10px;">
+                    <div class="form-group">
+                      <label class="filter-label" for="profileUsername">Tên định danh (Username)</label>
+                      <input type="text" id="profileUsername" class="form-input" readonly style="opacity:0.75; cursor:not-allowed;">
+                    </div>
+                    <div class="form-group">
+                      <label class="filter-label" for="profileEmail">Địa chỉ Email</label>
+                      <input type="email" id="profileEmail" class="form-input" required>
+                    </div>
+                  </div>
+
+                  <div class="form-group" style="margin-top:10px;">
+                    <label class="filter-label" for="profileBio">Giới thiệu ngắn (Bio)</label>
+                    <textarea id="profileBio" class="form-textarea" rows="2" placeholder="Ví dụ: Full-stack Developer đam mê React &amp; Python..."></textarea>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">
+                    [ 💾 Lưu thay đổi hồ sơ ]
+                  </button>
+                </form>
+
+                <hr style="border:none; border-top:1px solid var(--border); margin:18px 0 14px;">
+
+                <!-- KHỐI ĐỔI MẬT KHẨU BẢO MẬT -->
+                <h4 style="margin:0 0 10px; font-size:0.95rem; color:#A78BFA;">🔒 Đổi Mật Khẩu Bảo Mật</h4>
+                <form onsubmit="event.preventDefault(); submitChangePassword();">
+                  <div class="form-group">
+                    <label class="filter-label" for="profileCurrentPassword">Mật khẩu hiện tại</label>
+                    <div class="password-input-wrap">
+                      <input type="password" id="profileCurrentPassword" class="form-input" placeholder="Nhập mật khẩu hiện tại..." required>
+                      <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('profileCurrentPassword', this)" title="Hiện / Ẩn mật khẩu" aria-label="Hiện mật khẩu">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2" style="margin-top:10px;">
+                    <div class="form-group">
+                      <label class="filter-label" for="profileNewPassword">Mật khẩu mới</label>
+                      <div class="password-input-wrap">
+                        <input type="password" id="profileNewPassword" class="form-input" placeholder="Mật khẩu mới..." required>
+                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('profileNewPassword', this)" title="Hiện / Ẩn mật khẩu" aria-label="Hiện mật khẩu">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label class="filter-label" for="profileConfirmPassword">Nhập lại mật khẩu mới</label>
+                      <div class="password-input-wrap">
+                        <input type="password" id="profileConfirmPassword" class="form-input" placeholder="Xác nhận lại..." required>
+                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('profileConfirmPassword', this)" title="Hiện / Ẩn mật khẩu" aria-label="Hiện mật khẩu">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button type="submit" class="btn btn-secondary btn-sm" style="margin-top:10px;">
+                    [ 🔑 Cập nhật mật khẩu ]
+                  </button>
+                </form>
+
+                <hr style="border:none; border-top:1px solid var(--border); margin:18px 0 14px;">
+
+                <!-- KHỐI NHẬP KEY KÍCH HOẠT QUYỀN (CTV / KIỂM DUYỆT) -->
+                <h4 style="margin:0 0 8px; font-size:0.95rem; color:#F59E0B;">⚡ Kích Hoạt Quyền Bằng Key (CTV / Kiểm Duyệt)</h4>
+                <div style="display:flex; gap:8px;">
+                  <input type="text" id="activationKeyInput" class="form-input" placeholder="Nhập key: CTV-XXXX hoặc MOD-YYYY..." style="flex:1; font-family:var(--font-mono);">
+                  <button type="button" class="btn btn-primary btn-sm" onclick="submitActivationKey()">[ Kích hoạt ]</button>
+                </div>
+                <small class="text-muted" style="font-size:0.74rem; display:block; margin-top:4px;">Nhập Key do Admin cung cấp để nâng cấp vai trò tài khoản.</small>
+
+                <!-- KHỐI CẤP KEY DÀNH RIÊNG CHO ADMIN -->
+                <div id="adminKeyGeneratorBox" style="display:none; margin-top:14px; padding:12px; background:rgba(139,92,246,0.1); border:1px dashed var(--purple-primary); border-radius:var(--radius-md);">
+                  <h4 style="margin:0 0 8px; font-size:0.9rem; color:#C4B5FD;">👑 Khu Vực Cấp Key Của Admin</h4>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="generateRoleKey('contributor')">+ Tạo Key Cộng Tác Viên (CTV)</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="generateRoleKey('moderator')">+ Tạo Key Kiểm Duyệt Viên (MOD)</button>
+                  </div>
+                  <div id="adminGeneratedKeysList" style="font-size:0.78rem; font-family:var(--font-mono); color:#10B981;"></div>
+                </div>
+              </div>
+
+              <!-- Cột Phải: Bảo mật 2 Lớp (2FA) Chuẩn Google Authenticator -->
+              <div class="doc-card" style="padding:1.25rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                  <h3 style="margin:0;">2. Xác Thực 2 Lớp (2FA Google Authenticator)</h3>
+                  <span id="profile2faStatusBadge" class="badge badge-amber">2FA: Đang Tắt</span>
+                </div>
+
+                <div id="profile2faConfigBox" style="padding:14px; background:var(--bg-canvas); border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:14px;">
+                  <p style="margin:0 0 10px; font-size:0.83rem; color:var(--text-secondary);">
+                    Bảo vệ tài khoản bằng ứng dụng <strong>Google Authenticator</strong> hoặc <strong>Authy</strong> trên điện thoại.
+                  </p>
+
+                  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; align-items:center;">
+                    <div style="background:#FFFFFF; padding:10px; border-radius:8px; text-align:center; max-width:180px; margin:0 auto;">
+                      <svg width="150" height="150" viewBox="0 0 100 100" style="display:block; margin:0 auto;">
+                        <rect width="100" height="100" fill="#FFFFFF"/>
+                        <path d="M10 10h30v30h-30z M60 10h30v30h-30z M10 60h30v30h-30z M20 20h10v10h-10z M70 20h10v10h-10z M20 70h10v10h-10z M45 15h10v10h-10z M15 45h10v10h-10z M55 45h10v10h-10z M75 55h15v10h-15z M45 75h10v15h-10z M65 75h10v10h-10z M80 80h10v10h-10z" fill="#1E293B"/>
+                      </svg>
+                      <small style="color:#64748B; font-size:0.7rem; font-weight:600;">Google Authenticator</small>
+                    </div>
+
+                    <div>
+                      <label class="filter-label">Mã khóa bí mật (Secret Key nhập tay):</label>
+                      <div style="display:flex; gap:6px; align-items:center; margin-bottom:10px;">
+                        <code id="profile2faSecretKey" style="font-size:0.82rem; font-weight:700; color:#10B981; background:rgba(16,185,129,0.1); padding:4px 8px; border-radius:4px;">OPENHUB2026AUTHKEY</code>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyDirectString('OPENHUB2026AUTHKEY')" style="padding:2px 8px; font-size:0.72rem;">Copy</button>
+                      </div>
+
+                      <label class="filter-label" for="profile2faInput">Mã xác thực 6 số từ Google Authenticator (*):</label>
+                      <div style="display:flex; gap:6px;">
+                        <input type="text" id="profile2faInput" class="form-input" maxlength="6" placeholder="Ví dụ: 123456" style="font-family:var(--font-mono); letter-spacing:2px; font-weight:700;">
+                        <button type="button" id="profile2faToggleBtn" class="btn btn-primary btn-sm" onclick="toggleGoogle2FA()">[ Bật 2FA ]</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div id="auth2faResultBox" style="margin-bottom:1rem;"></div>
                 <div id="authPatResultBox" style="margin-bottom:1rem;"></div>
 
-                <h4>Danh sách Thiết bị Đang đăng nhập (Active Sessions)</h4>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px;">
+                  <h4 style="margin:0; font-size:0.9rem;">Thiết Bị Đang Đăng Nhập</h4>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="generatePatFromUI()" style="font-size:0.74rem;">Tạo Token PAT</button>
+                </div>
                 <div id="activeSessionsListWrap" style="margin-top:0.5rem;"></div>
               </div>
             </div>
@@ -810,19 +961,132 @@
         <!-- MÀN HÌNH 6: TRÌNH THUẬT SĨ ĐĂNG TẢI 4 BƯỚC (DÀNH RIÊNG CHO ADMIN) -->
         <!-- =============================================================== -->
         <section id="viewUpload" class="view-section" style="display: none;">
-          <!-- KHỐI CHẶN QUYỀN ĐĂNG TẢI NẾU KHÔNG PHẢI ADMIN -->
+          <!-- KHỐI CHẶN QUYỀN ĐĂNG TẢI NẾU CHƯA ĐĂNG NHẬP -->
           <div id="uploadAdminPermissionGate" class="signed-banner" style="display: none; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.35); color: #FCA5A5; margin-bottom: 1.5rem;">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
               <div>
-                <strong style="color: #EF4444; font-size: 1.05rem;">⛔ Quyền Hạn Bị Giới Hạn:</strong>
+                <strong style="color: #EF4444; font-size: 1.05rem;">⛔ Yêu Cầu Đăng Nhập:</strong>
                 <p style="margin: 4px 0 0; font-size: 0.84rem; color: var(--text-secondary);">
-                  Chỉ tài khoản <strong>Quản Trị Viên (Admin)</strong> mới có quyền tải toàn bộ mã nguồn dự án mới lên hệ thống và định giá. Tài khoản người dùng thường chỉ có thể xem, nạp tiền và mua/tải dự án.
+                  Vui lòng đăng nhập để đăng tải dự án của bạn lên hệ thống, đàm phán giá bán với Admin hoặc quản lý các dự án của mình.
                 </p>
               </div>
               <button type="button" class="btn btn-primary btn-sm" onclick="openAuthModal('login')">
-                Đăng nhập tài khoản Admin (admin)
+                Đăng nhập ngay
               </button>
             </div>
+          </div>
+
+          <!-- KHỐI ĐĂNG TẢI DỰ ÁN & ĐÀM PHÁN GIÁ DÀNH CHO THÀNH VIÊN -->
+          <div id="memberUploadCard" class="wizard-card" style="display: none; margin-bottom: 1.5rem;">
+            <div class="wizard-header">
+              <h2>📤 Đăng Tải Dự Án Của Bạn &amp; Đề Xuất Giá (Chờ Admin Duyệt)</h2>
+              <p>Thành viên có thể tải toàn bộ mã nguồn dự án của mình lên hệ thống, đề xuất mức giá mong muốn (hoặc Miễn phí) kèm ghi chú đàm phán với Admin.</p>
+            </div>
+
+            <form onsubmit="event.preventDefault(); submitMemberProjectForReview();">
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="filter-label" for="memProjectTitle">Tên dự án (*)</label>
+                  <input type="text" id="memProjectTitle" class="form-input" placeholder="Ví dụ: Ứng dụng đặt món ăn Realtime" required oninput="handleMemberUploadTitleInput(this.value)">
+                </div>
+                <div class="form-group">
+                  <label class="filter-label" for="memProjectSlug">Slug tĩnh</label>
+                  <input type="text" id="memProjectSlug" class="form-input" readonly placeholder="slug-tu-dong">
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top: 10px;">
+                <label class="filter-label" for="memProjectDesc">Mô tả ngắn gọn (*)</label>
+                <input type="text" id="memProjectDesc" class="form-input" placeholder="Tóm tắt công nghệ, tính năng cốt lõi..." required>
+              </div>
+
+              <div class="form-grid-3" style="margin-top: 10px;">
+                <div class="form-group">
+                  <label class="filter-label" for="memProjectCategory">Danh mục</label>
+                  <select id="memProjectCategory" class="form-select"></select>
+                </div>
+                <div class="form-group">
+                  <label class="filter-label" for="memProjectLicense">Giấy phép (License)</label>
+                  <select id="memProjectLicense" class="form-select">
+                    <option value="MIT">MIT License</option>
+                    <option value="Apache-2.0">Apache-2.0</option>
+                    <option value="GPL-3.0">GPL-3.0</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="filter-label" for="memProjectTags">Thẻ công nghệ (phân cách bằng dấu phẩy)</label>
+                  <input type="text" id="memProjectTags" class="form-input" value="Node.js, React, MongoDB">
+                </div>
+              </div>
+
+              <!-- KHỐI ĐỀ XUẤT GIÁ & ĐÀM PHÁN VỚI ADMIN -->
+              <div style="margin-top: 14px; padding: 14px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.25); border-radius: var(--radius-md);">
+                <h4 style="margin: 0 0 10px; color: #60A5FA; font-size: 0.96rem;">💰 Đề Xuất Giá &amp; Đàm Phán Với Admin:</h4>
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="filter-label" for="memProjectPrice">Mức giá đề xuất bán (VNĐ — 0 = Miễn phí):</label>
+                    <input type="number" id="memProjectPrice" class="form-input" value="0" min="0" step="10000" placeholder="0 = Miễn phí (Free)">
+                  </div>
+                  <div class="form-group" style="display: flex; align-items: center; padding-top: 22px;">
+                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                      <input type="checkbox" id="memProjectIsFreeCheck" checked onchange="document.getElementById('memProjectPrice').value = this.checked ? '0' : '50000'">
+                      <span><strong>Dự án Miễn Phí (Free 0 VNĐ)</strong></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 10px;">
+                  <label class="filter-label" for="memProjectNegotiationNote">Ghi chú đàm phán gửi Admin (*):</label>
+                  <textarea id="memProjectNegotiationNote" class="form-textarea" rows="2" placeholder="Ví dụ: Em đề xuất bán giá 50.000đ hoặc chia sẻ 80/20 với web, nếu không được thì duyệt Free cũng được ạ..." required></textarea>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top: 10px;">
+                <label class="filter-label" for="memProjectEntriesJson">Danh sách tệp mã nguồn (JSON files/structure) (*):</label>
+                <textarea id="memProjectEntriesJson" class="form-textarea code-textarea" rows="4"></textarea>
+              </div>
+
+              <div class="form-grid-2" style="margin-top: 10px;">
+                <div class="form-group">
+                  <label class="filter-label" for="memProjectDemoUrl">Demo URL (Tùy chọn)</label>
+                  <input type="url" id="memProjectDemoUrl" class="form-input" placeholder="https://my-demo.com">
+                </div>
+                <div class="form-group">
+                  <label class="filter-label" for="memProjectQuickStart">Hướng dẫn cài đặt nhanh</label>
+                  <input type="text" id="memProjectQuickStart" class="form-input" placeholder="Ví dụ: npm install &amp;&amp; npm start">
+                </div>
+              </div>
+
+              <div style="margin-top: 14px; display: flex; justify-content: flex-end;">
+                <button type="submit" id="memSubmitBtn" class="btn btn-primary">
+                  [ 🚀 Gửi Dự Án Đàm Phán &amp; Chờ Admin Phê Duyệt ]
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- DASHBOARD DỰ ÁN CỦA TÔI (CHO THÀNH VIÊN) -->
+          <div id="memberMyProjectsCard" class="wizard-card" style="display: none; margin-bottom: 1.5rem;">
+            <div class="wizard-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <h2>📋 Dashboard Dự Án Của Tôi</h2>
+                <p>Theo dõi tiến độ kiểm duyệt, đàm phán giá và chỉnh sửa dự án đã gửi lên hệ thống.</p>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="renderMyUploadedProjects()">Làm mới</button>
+            </div>
+            <div id="memberMyProjectsTableWrap" class="table-responsive"></div>
+          </div>
+
+          <!-- HÀNG ĐỢI PHÊ DUYỆT & ĐÀM PHÁN GIÁ (DÀNH CHO ADMIN) -->
+          <div id="adminPendingProjectsCard" class="wizard-card" style="display: none; margin-bottom: 1.5rem;">
+            <div class="wizard-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <h2>⚖️ Hàng Đợi Phê Duyệt &amp; Đàm Phán Giá Dự Án Thành Viên (Admin)</h2>
+                <p>Xem xét mã nguồn, ghi chú đàm phán từ thành viên, thống nhất chốt giá (hoặc Free) và duyệt xuất bản.</p>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="renderAdminPendingProjects()">Làm mới</button>
+            </div>
+            <div id="adminPendingProjectsTableWrap" class="table-responsive"></div>
           </div>
 
           <div id="wizStepsCard" class="wizard-card">
@@ -1170,7 +1434,12 @@
 
           <div class="form-group" style="margin-top: 10px;">
             <label class="filter-label" for="authRegPassword">Mật khẩu bảo mật (*)</label>
-            <input type="password" id="authRegPassword" class="form-input" placeholder="Nhập mật khẩu (tối thiểu 8 ký tự, có số &amp; chữ hoa)" required oninput="handleModalPasswordMeter(this.value)">
+            <div class="password-input-wrap">
+              <input type="password" id="authRegPassword" class="form-input" placeholder="Nhập mật khẩu (tối thiểu 8 ký tự, có số &amp; chữ hoa)" required oninput="handleModalPasswordMeter(this.value)">
+              <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('authRegPassword', this)" title="Hiện / Ẩn mật khẩu" aria-label="Hiện mật khẩu">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
             <div class="pwd-meter-bars" style="margin-top: 6px;">
               <div id="modalPwdBar1" class="pwd-bar"></div>
               <div id="modalPwdBar2" class="pwd-bar"></div>
@@ -1207,7 +1476,12 @@
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <label class="filter-label" for="authLoginPassword" style="margin: 0;">Mật khẩu</label>
             </div>
-            <input type="password" id="authLoginPassword" class="form-input" placeholder="Nhập mật khẩu..." required autocomplete="current-password" style="margin-top: 4px;">
+            <div class="password-input-wrap" style="margin-top: 4px;">
+              <input type="password" id="authLoginPassword" class="form-input" placeholder="Nhập mật khẩu..." required autocomplete="current-password">
+              <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('authLoginPassword', this)" title="Hiện / Ẩn mật khẩu" aria-label="Hiện mật khẩu">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
           </div>
 
           <div id="authLoginError" class="auth-error-msg" style="display: none;"></div>
@@ -1273,12 +1547,30 @@
     <div class="modal-box" style="max-width: 640px;">
       <div class="modal-header">
         <div>
-          <h3 style="margin: 0; font-size: 1.15rem;">Hộp Thư Dự Án & Người Dùng (3 tin nhắn)</h3>
-          <small class="text-muted" style="font-size: 0.78rem;">Phản hồi hỗ trợ và yêu cầu kỹ thuật từ lập trình viên tải mã nguồn</small>
+          <h3 style="margin: 0; font-size: 1.15rem;">Hộp Thư Dự Án &amp; Kênh Phản Ánh Trực Tiếp</h3>
+          <small class="text-muted" style="font-size: 0.78rem;">Phản hồi hỗ trợ kỹ thuật và kênh liên hệ trực tiếp với tác giả &amp; quản trị</small>
         </div>
         <button type="button" class="btn-close" onclick="closeEmailModal()" aria-label="Đóng">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
+      </div>
+
+      <!-- KHỐI LIÊN HỆ & PHẢN HỒI TRỰC TIẾP QUA ZALO, FACEBOOK, EMAIL -->
+      <div style="margin-bottom: 14px; padding: 12px 14px; background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.3); border-radius: var(--radius-md);">
+        <div style="font-size: 0.82rem; font-weight: 700; color: #C4B5FD; margin-bottom: 8px;">
+          📞 Kênh Liên Hệ Trực Tiếp &amp; Hỗ Trợ Kỹ Thuật Nhanh:
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px;">
+          <a href="https://zalo.me/0866517501" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;justify-content:center;gap:6px;border-color:#38BDF8;color:#38BDF8;text-decoration:none;">
+            <span>💬 Zalo: 0866517501</span>
+          </a>
+          <a href="https://www.facebook.com/share/1AJwPZV2Bb/" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;justify-content:center;gap:6px;border-color:#60A5FA;color:#60A5FA;text-decoration:none;">
+            <span>🌐 Facebook Admin</span>
+          </a>
+          <a href="mailto:letienn24680@gmail.com" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;justify-content:center;gap:6px;border-color:#10B981;color:#10B981;text-decoration:none;">
+            <span>✉️ letienn24680@gmail.com</span>
+          </a>
+        </div>
       </div>
       <div id="emailListContainer" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; max-height: 380px; overflow-y: auto;"></div>
       <div id="emailReplyBox" style="display: none; border-top: 1px solid var(--border); padding-top: 12px;">
@@ -1314,40 +1606,120 @@
 
   <!-- MODAL HƯỚNG DẪN KỸ THUẬT & TOÀN BỘ CHỨC NĂNG HỆ THỐNG (HELP CENTER) -->
   <div id="helpModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeHelpModal()">
-    <div class="modal-box" style="max-width: 680px; max-height: 85dvh; overflow-y: auto;">
+    <div class="modal-box" style="max-width: 720px; max-height: 85dvh; overflow-y: auto;">
       <div class="modal-header">
-        <div>
-          <h3 style="margin: 0; font-size: 1.15rem;">Trung Tâm Hướng Dẫn & Tài Liệu Kỹ Thuật OpenHub v2.0</h3>
-          <small class="text-muted" style="font-size: 0.78rem;">Chi tiết cách vận hành của từng phân hệ & chức năng trên nền tảng</small>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(59,130,246,0.15); display: flex; align-items: center; justify-content: center; color: #3B82F6;">
+            📖
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem;">Hướng Dẫn Sử Dụng &amp; Vận Hành Nền Tảng</h3>
+            <small class="text-muted" style="font-size: 0.78rem;">Giải thích chi tiết, thông thoáng, dễ hiểu từng bước cho mọi người dùng</small>
+          </div>
         </div>
         <button type="button" class="btn-close" onclick="closeHelpModal()" aria-label="Đóng">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <div class="markdown-body" style="font-size: 0.85rem; line-height: 1.6;">
-        <h4>1. Khám Phá & Bộ Lọc Dự Án (Discovery & Multi-faceted Filter)</h4>
-        <p>Tìm kiếm tức thời tên dự án, tác giả, thẻ công nghệ (React, FastAPI, Docker, Rust). Hỗ trợ lọc theo Danh mục, Giấy phép (MIT, Apache, GPL), sắp xếp theo lượt tải và điểm an toàn Health Score.</p>
 
-        <h4>2. Xem Chi Tiết, Cây Thư Mục & Trình Đọc Mã Nguồn Trực Tiếp</h4>
-        <p>Bấm vào bất kỳ dự án nào để duyệt cây thư mục không giới hạn độ sâu. Bấm vào tệp tin (<code>.py</code>, <code>.ts</code>, <code>.json</code>, <code>.md</code>) để xem mã nguồn kèm đánh số dòng và bật/tắt Word Wrap. Tải xuống tệp đơn lẻ hoặc toàn bộ gói .ZIP.</p>
+      <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 10px; font-size: 0.88rem; line-height: 1.8;">
 
-        <h4>3. Trình Cấu Hình Biến Môi Trường (Interactive .env Builder)</h4>
-        <p>Điền các tham số cấu hình trực tiếp trên giao diện để hệ thống tự động sinh tệp <code>.env</code> đóng gói kèm mã nguồn tải về.</p>
+        <!-- MỤC 1 -->
+        <div style="padding: 14px 16px; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: var(--radius-md);">
+          <h4 style="margin: 0 0 8px; color: #60A5FA; font-size: 0.98rem; display: flex; align-items: center; gap: 6px;">
+            <span>🌐 1. Nền Tảng Này Dùng Để Làm Gì?</span>
+          </h4>
+          <p style="margin: 0; color: var(--text-secondary);">
+            Đây là nền tảng <strong>chia sẻ, mua bán và chuyển giao mã nguồn dự án phần mềm trọn gói</strong> (Web App, Mobile App, AI, Bot, CLI). Mọi dự án đều được kiểm tra an toàn tự động (quét mã độc, chống lộ khóa API, lọc rác) để bạn có thể tải về và chạy ngay trên máy tính của mình.
+          </p>
+        </div>
 
-        <h4>4. So Sánh Phiên Bản Mã Nguồn (Version Diff Viewer)</h4>
-        <p>So sánh trực quan giữa các phiên bản (v1.0.0 vs mới nhất) theo chế độ 2 cột Side-by-Side trên máy tính hoặc 1 cột Unified trên điện thoại.</p>
+        <!-- MỤC 2 -->
+        <div style="padding: 14px 16px; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: var(--radius-md);">
+          <h4 style="margin: 0 0 8px; color: #10B981; font-size: 0.98rem; display: flex; align-items: center; gap: 6px;">
+            <span>📥 2. Cách Xem &amp; Tải Dự Án Miễn Phí (Free)</span>
+          </h4>
+          <p style="margin: 0 0 6px; color: var(--text-secondary);">
+            • Vào trang <strong>Khám phá</strong>: Các dự án có huy hiệu xanh lá <code>Miễn phí (Free)</code> đều cho phép tải không mất tiền.<br>
+            • Bấm vào dự án để xem chi tiết cây thư mục, đọc từng dòng code trên trình duyệt.<br>
+            • Nhấn nút <strong>[ Tải xuống .ZIP (Miễn phí) ]</strong> để lấy toàn bộ mã nguồn về máy.
+          </p>
+        </div>
 
-        <h4>5. Giỏ Lưu Trữ Dự Án (Project Bundle Cart)</h4>
-        <p>Gom nhiều dự án vào giỏ và tải về tất cả chỉ với 1 cú nhấp chuột thành một tệp nén duy nhất có kèm danh mục tệp kê khai <code>BUNDLE_MANIFEST.txt</code>.</p>
+        <!-- MỤC 3 -->
+        <div style="padding: 14px 16px; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: var(--radius-md);">
+          <h4 style="margin: 0 0 8px; color: #F59E0B; font-size: 0.98rem; display: flex; align-items: center; gap: 6px;">
+            <span>💳 3. Cách Nạp Tiền Vào Ví Điện Tử (Qua VietQR MB Bank)</span>
+          </h4>
+          <p style="margin: 0 0 6px; color: var(--text-secondary);">
+            • Nhấn vào nút <strong>Ví: 0 đ</strong> trên thanh menu trên cùng hoặc chọn <strong>Ví &amp; Nạp tiền</strong> ở thanh bên trái.<br>
+            • Mở App Ngân hàng (MBBank, Vietcombank, Techcombank, MoMo...) và quét mã QR MB Bank hiển thị trên màn hình.<br>
+            • <strong>Chủ tài khoản:</strong> <code>LE THUAN TIEN</code> | <strong>STK:</strong> <code>7897895757</code> tại <strong>MB Bank</strong>.<br>
+            • <strong>Nội dung chuyển khoản:</strong> Nhập chính xác cú pháp <code>NAP &lt;tên_tk&gt; &lt;mã_số&gt;</code>.<br>
+            • Bấm nút xác nhận đã chuyển tiền. Admin sẽ đối chiếu và duyệt cộng tiền vào ví của bạn trong vài phút!
+          </p>
+        </div>
 
-        <h4>6. Đăng Tải Dự Án & Quét An Toàn 4 Tầng (DevSecOps)</h4>
-        <p>Trình thuật sĩ 4 bước kiểm tra tự động: Chống Zip Bomb (tỷ lệ giải nén > 100:1), Zip Slip (thoát thư mục), quét lộ khóa nhạy cảm AWS/.env và tự động dọn sạch rác <code>node_modules</code>.</p>
+        <!-- MỤC 4 -->
+        <div style="padding: 14px 16px; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: var(--radius-md);">
+          <h4 style="margin: 0 0 8px; color: #A78BFA; font-size: 0.98rem; display: flex; align-items: center; gap: 6px;">
+            <span>🛒 4. Cách Mua Dự Án Có Phí &amp; Quyền Sở Hữu Vĩnh Viễn</span>
+          </h4>
+          <p style="margin: 0; color: var(--text-secondary);">
+            • Nếu dự án có phí bản quyền (VD: 50.000 đ), bấm nút <strong>[ 💳 Mua dự án ]</strong>.<br>
+            • Hệ thống sẽ tự động trừ số dư trong ví của bạn và cấp bản quyền vĩnh viễn.<br>
+            • Dự án đã mua sẽ lưu tại tab <strong>Dự án đã mua</strong> trong Ví, bạn có thể tải lại bất kỳ lúc nào mà không cần trả thêm phí.
+          </p>
+        </div>
 
-        <h4>7. Chuyển Tiếp Đa Thiết Bị (Cross-Device Handoff)</h4>
-        <p>Đang xem dự án trên điện thoại? Bấm <strong>[ Lấy sang PC ]</strong> để sinh Mã Kết Nối Nhanh 6 ký tự (VD: <code>HUB-849</code>) kèm mã QR để tải ngay trên máy tính mà không cần gửi link.</p>
+        <!-- MỤC 5 -->
+        <div style="padding: 14px 16px; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: var(--radius-md);">
+          <h4 style="margin: 0 0 8px; color: #EC4899; font-size: 0.98rem; display: flex; align-items: center; gap: 6px;">
+            <span>🚀 5. Tự Tải Dự Án Của Bạn Lên &amp; Đàm Phán Giá Với Admin</span>
+          </h4>
+          <p style="margin: 0; color: var(--text-secondary);">
+            • Mọi thành viên đều có thể tải dự án của mình lên tại mục <strong>Đăng tải</strong>.<br>
+            • Bạn có thể đề xuất mức giá muốn bán hoặc đề xuất Miễn phí (Free) và gửi kèm lời nhắn đàm phán.<br>
+            • Dự án sẽ được chuyển tới hàng đợi để Admin kiểm duyệt và thống nhất giá.<br>
+            • Bạn có một bảng Dashboard riêng để theo dõi trạng thái và có thể tự sửa lại dự án sau khi được duyệt.
+          </p>
+        </div>
 
-        <h4>8. Bảo Mật Tài Khoản 2 Lớp (2FA / TOTP) & Personal Access Token (PAT)</h4>
-        <p>Quản lý tài khoản tại mục Settings: Bật xác thực 2 lớp quét QR với Google Authenticator, cấp phát 10 mã khôi phục và tạo Token PAT cho dòng lệnh CLI.</p>
+        <!-- MỤC 6 -->
+        <div style="padding: 14px 16px; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: var(--radius-md);">
+          <h4 style="margin: 0 0 8px; color: #38BDF8; font-size: 0.98rem; display: flex; align-items: center; gap: 6px;">
+            <span>🛡️ 6. Bảo Mật 2 Lớp (2FA) Chuẩn Google Authenticator</span>
+          </h4>
+          <p style="margin: 0; color: var(--text-secondary);">
+            • Vào mục <strong>Tài khoản &amp; Bảo mật</strong>.<br>
+            • Bật tính năng 2FA: Quét mã QR bằng ứng dụng <strong>Google Authenticator</strong> trên điện thoại.<br>
+            • Nhập mã 6 số hiển thị trên app để hoàn tất kích hoạt. Mỗi lần đăng nhập máy lạ, bạn sẽ được bảo vệ tuyệt đối.
+          </p>
+        </div>
+
+        <!-- MỤC 7 -->
+        <div style="padding: 14px 16px; background: var(--bg-canvas); border: 1px solid var(--border); border-radius: var(--radius-md);">
+          <h4 style="margin: 0 0 8px; color: #FBBF24; font-size: 0.98rem; display: flex; align-items: center; gap: 6px;">
+            <span>🔑 7. Nâng Cấp Quyền Cộng Tác Viên (CTV) &amp; Kiểm Duyệt Viên</span>
+          </h4>
+          <p style="margin: 0; color: var(--text-secondary);">
+            • Tài khoản Quản trị Admin có thể cấp các mã Key đặc quyền.<br>
+            • Nhập mã key <code>CTV-XXXX</code> để trở thành Cộng tác viên, hoặc mã <code>MOD-XXXX</code> để trở thành Kiểm duyệt viên trong mục Cài đặt tài khoản.
+          </p>
+        </div>
+
+        <!-- MỤC 8: LIÊN HỆ -->
+        <div style="padding: 14px 16px; background: rgba(59,130,246,0.08); border: 1px dashed #3B82F6; border-radius: var(--radius-md);">
+          <h4 style="margin: 0 0 8px; color: #60A5FA; font-size: 0.98rem;">
+            📞 8. Kênh Hỗ Trợ Kỹ Thuật Trực Tiếp 24/7:
+          </h4>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <span>💬 <strong>Zalo:</strong> 0866517501</span>
+            <span>🌐 <strong>Facebook:</strong> fb.com/share/1AJwPZV2Bb</span>
+            <span>✉️ <strong>Email:</strong> letienn24680@gmail.com</span>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -1477,6 +1849,18 @@
           </div>
           <button type="button" class="btn btn-secondary btn-sm" onclick="renderTopupHistory()">Làm mới</button>
         </div>
+
+        <!-- BỘ LỌC & TÌM KIẾM CHI TIẾT NẠP TIỀN -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+          <input type="text" id="topupSearchInput" class="form-input" placeholder="Tìm theo mã GD (TOP-...) hoặc ghi chú chuyển khoản..." style="flex: 1; min-width: 180px;" oninput="renderTopupHistory()">
+          <select id="topupStatusFilter" class="form-select" style="width: auto; min-width: 140px;" onchange="renderTopupHistory()">
+            <option value="">Tất cả trạng thái</option>
+            <option value="pending">⏳ Đang chờ duyệt</option>
+            <option value="approved">✅ Thành công</option>
+            <option value="rejected">❌ Từ chối</option>
+          </select>
+        </div>
+
         <div id="topupHistoryList" class="table-responsive" style="max-height: 380px; overflow-y: auto;"></div>
       </div>
 
@@ -1489,6 +1873,12 @@
           </div>
           <button type="button" class="btn btn-secondary btn-sm" onclick="renderPurchasedProjectsList()">Làm mới</button>
         </div>
+
+        <!-- BỘ TÌM KIẾM DỰ ÁN ĐÃ MUA -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+          <input type="text" id="purchasedSearchInput" class="form-input" placeholder="Tìm kiếm theo tên dự án đã mua..." style="flex: 1; min-width: 180px;" oninput="renderPurchasedProjectsList()">
+        </div>
+
         <div id="purchasedProjectsList" class="table-responsive" style="max-height: 380px; overflow-y: auto;"></div>
       </div>
     </div>
@@ -1548,6 +1938,36 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL THÔNG BÁO HỆ THỐNG (NOTIFICATIONS) -->
+  <div id="notifModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeNotificationsModal()">
+    <div class="modal-box" style="max-width: 560px; max-height: 85dvh; overflow-y: auto;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(239,68,68,0.15); display: flex; align-items: center; justify-content: center; color: #EF4444;">
+            🔔
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem;">Thông Báo Hệ Thống</h3>
+            <small class="text-muted" style="font-size: 0.78rem;">Cập nhật giao dịch nạp tiền, trạng thái duyệt dự án &amp; đơn hàng</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" onclick="closeNotificationsModal()" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+        <span style="font-size: 0.8rem; color: var(--text-secondary);" id="notifUnreadCountText">0 thông báo chưa đọc</span>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="markAllNotificationsRead()" style="font-size: 0.75rem;">Đánh dấu đã đọc</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="clearAllNotifications()" style="font-size: 0.75rem; color: #EF4444;">Xóa tất cả</button>
+        </div>
+      </div>
+
+      <div id="notificationsListContainer" style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto;"></div>
     </div>
   </div>
 

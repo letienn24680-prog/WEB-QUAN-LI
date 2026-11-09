@@ -1411,6 +1411,39 @@ tr:hover td {
   font-weight: 500;
 }
 
+.password-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-wrap .form-input {
+  padding-right: 42px !important;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 150ms ease;
+  z-index: 2;
+}
+
+.password-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
 /* ============================================================================
  * CÁC MÀN HÌNH KHÁC: KHÁM PHÁ, CHI TIẾT DỰ ÁN, AUTH, PORTFOLIO, WIZARD, ADMIN
  * ============================================================================ */
