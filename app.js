@@ -400,6 +400,16 @@ window.addEventListener("DOMContentLoaded", async () => {
   if (pairParam) {
     openMobileToPcHandoffModal(pairParam);
   }
+
+  // Khóa phiên bảo mật: Khi mở lại trình duyệt mới, bắt buộc đăng nhập để tiếp tục
+  if (!appState.currentUser) {
+    openAuthModal(
+      "login",
+      null,
+      "🔒 Phiên làm việc đã kết thúc sau khi đóng trình duyệt. Vui lòng đăng nhập lại để tiếp tục sử dụng hệ thống!",
+      true
+    );
+  }
 });
 
 // =============================================================================
@@ -2626,7 +2636,7 @@ function requireAuth(callback, actionDescription = "tiếp tục xem và sử d�
   return false;
 }
 
-function openAuthModal(tab = "register", callback = null, desc = "Bạn cần tạo tài khoản để sử dụng các chức năng của hệ thống") {
+function openAuthModal(tab = "register", callback = null, desc = "Bạn cần tạo tài khoản để sử dụng các chức năng của hệ thống", forceLock = false) {
   appState.pendingAuthCallback = callback;
   const modal = document.getElementById("authModal");
   if (!modal) return;
@@ -2635,9 +2645,17 @@ function openAuthModal(tab = "register", callback = null, desc = "Bạn cần t�
   switchAuthModalTab(tab);
   modal.style.display = "flex";
   document.body.classList.add("scroll-locked");
+
+  const closeBtn = modal.querySelector(".btn-close");
+  const isRequired = forceLock || !appState.currentUser;
+  if (closeBtn) closeBtn.style.display = isRequired ? "none" : "block";
 }
 
 function closeAuthModal() {
+  if (!appState.currentUser) {
+    showToast("🔒 Bạn cần đăng nhập để bắt đầu phiên làm việc mới!", true);
+    return;
+  }
   const modal = document.getElementById("authModal");
   if (modal) modal.style.display = "none";
   document.body.classList.remove("scroll-locked");
@@ -3198,8 +3216,9 @@ function logoutUser() {
   updateWalletUI();
   updateCloudStorageUsage();
   updateNotificationBadge();
-  navigateView("explore");
+  navigateView("dashboard");
   showToast("Bạn đã đăng xuất tài khoản an toàn.");
+  openAuthModal("login", null, "🔒 Bạn đã đăng xuất. Vui lòng đăng nhập lại để tiếp tục sử dụng hệ thống!", true);
 }
 
 // =============================================================================
