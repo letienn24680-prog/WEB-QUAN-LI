@@ -2188,9 +2188,12 @@
       </div>
 
       <div style="overflow-y: auto; flex: 1; padding-right: 4px;">
-        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.8rem;">
-          <span style="color: var(--text-secondary);">Tài khoản NexaPanel hiện tại:</span>
-          <strong id="githubModalCurrentWebUser" style="color: #A78BFA;">Admin</strong>
+        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.8rem; flex-wrap: wrap; gap: 6px;">
+          <div>
+            <span style="color: var(--text-secondary);">Tài khoản NexaPanel:</span>
+            <strong id="githubModalCurrentWebUser" style="color: #A78BFA; margin-left: 4px;">Admin</strong>
+          </div>
+          <span id="githubRateLimitBadge" style="font-size: 0.74rem; color: #10B981; background: rgba(16,185,129,0.1); padding: 2px 8px; border-radius: 4px;">⚡ GitHub API: Sẵn sàng</span>
         </div>
 
         <div id="githubAccountContainer" style="margin-bottom: 14px;"></div>
@@ -2211,6 +2214,19 @@
           </div>
 
           <div id="githubReposList" style="display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; padding-right: 4px;"></div>
+
+          <!-- KHỐI NHẬP TRỰC TIẾP TÊN HOẶC URL KHO (DỰ PHÒNG KHI HẾT HẠN MỨC API) -->
+          <div style="margin-top: 12px; padding: 10px 12px; background: rgba(139,92,246,0.06); border: 1px dashed rgba(139,92,246,0.3); border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 0.78rem; font-weight: 600; color: #C4B5FD;">⚡ Nhập trực tiếp kho bất kỳ (Không lo giới hạn API):</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="githubDirectRepoInput" class="form-input" placeholder="Ví dụ: my-repo hoặc https://github.com/username/my-repo..." style="flex: 1; font-size: 0.82rem;" onkeydown="if(event.key==='Enter')handleDirectGitHubRepoImport()">
+              <button type="button" class="btn btn-primary btn-sm" onclick="handleDirectGitHubRepoImport()" style="font-size: 0.8rem; white-space: nowrap;">
+                🚀 Đưa Lên Web
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

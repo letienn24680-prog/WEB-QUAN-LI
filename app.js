@@ -3827,6 +3827,7 @@ async function connectGitHubAccount() {
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
     const res = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, { headers });
+    updateGitHubRateLimitBadge(res.headers);
     if (!res.ok) {
       if (res.status === 404) {
         showToast(`❌ Không tìm thấy người dùng GitHub "@${username}". Vui lòng kiểm tra lại!`);
@@ -3876,6 +3877,60 @@ function disconnectGitHubAccount() {
   showToast(`Đã hủy liên kết với tài khoản GitHub @${name || "cá nhân"}.`);
 }
 
+function updateGitHubRateLimitBadge(headers) {
+  const badge = document.getElementById("githubRateLimitBadge");
+  if (!badge || !headers) return;
+
+  const remaining = headers.get ? headers.get("x-ratelimit-remaining") : headers["x-ratelimit-remaining"];
+  const limit = headers.get ? headers.get("x-ratelimit-limit") : headers["x-ratelimit-limit"];
+  const reset = headers.get ? headers.get("x-ratelimit-reset") : headers["x-ratelimit-reset"];
+
+  if (remaining !== null && remaining !== undefined) {
+    const remNum = Number(remaining);
+    const limNum = Number(limit) || 60;
+    if (remNum > 10) {
+      badge.textContent = `⚡ API: còn ${remNum}/${limNum} lượt`;
+      badge.style.color = "#10B981";
+      badge.style.background = "rgba(16,185,129,0.1)";
+    } else if (remNum > 0) {
+      badge.textContent = `⚠️ API: còn ${remNum}/${limNum} lượt`;
+      badge.style.color = "#F59E0B";
+      badge.style.background = "rgba(245,158,11,0.15)";
+    } else {
+      let resetMins = 30;
+      if (reset) {
+        resetMins = Math.max(1, Math.ceil((Number(reset) * 1000 - Date.now()) / 60000));
+      }
+      badge.textContent = `❌ Hết lượt (Reset sau ${resetMins}p)`;
+      badge.style.color = "#EF4444";
+      badge.style.background = "rgba(239,68,68,0.15)";
+    }
+  }
+}
+
+function getGitHubReposCache(username) {
+  try {
+    const raw = localStorage.getItem(`openhub_gh_cache_${username}`);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (Date.now() - (data.timestamp || 0) < 30 * 60 * 1000 && Array.isArray(data.repos)) {
+      return data.repos;
+    }
+    return data.repos || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setGitHubReposCache(username, repos) {
+  try {
+    localStorage.setItem(`openhub_gh_cache_${username}`, JSON.stringify({
+      timestamp: Date.now(),
+      repos: repos
+    }));
+  } catch (e) {}
+}
+
 async function loadGitHubUserRepos(forceRefresh = false) {
   const linked = getLinkedGitHubData();
   if (!linked || !linked.username) return;
@@ -3886,30 +3941,69 @@ async function loadGitHubUserRepos(forceRefresh = false) {
   if (reposSection) reposSection.style.display = "block";
   if (!reposList) return;
 
-  if (forceRefresh || !currentGitHubRepos || currentGitHubRepos.length === 0) {
-    reposList.innerHTML = `
-      <div style="text-align: center; padding: 30px 10px; color: var(--text-secondary);">
-        <div style="font-size: 1.8rem; margin-bottom: 8px;">⏳</div>
-        <div>Đang tải danh sách kho lưu trữ từ @${escapeHtml(linked.username)}...</div>
-      </div>
-    `;
+  // 1. Kiểm tra bộ nhớ đệm (Cache TTL 30 phút)
+  const cached = getGitHubReposCache(linked.username);
+  if (!forceRefresh && cached && cached.length > 0) {
+    currentGitHubRepos = cached;
+    if (countBadge) countBadge.textContent = String(currentGitHubRepos.length);
+    filterGitHubReposList();
+    return;
+  }
 
-    try {
-      const headers = { Accept: "application/vnd.github.v3+json" };
-      if (linked.token) headers["Authorization"] = `Bearer ${linked.token}`;
+  reposList.innerHTML = `
+    <div style="text-align: center; padding: 30px 10px; color: var(--text-secondary);">
+      <div style="font-size: 1.8rem; margin-bottom: 8px;">⏳</div>
+      <div>Đang tải danh sách kho lưu trữ từ @${escapeHtml(linked.username)}...</div>
+    </div>
+  `;
 
-      const res = await fetch(`https://api.github.com/users/${encodeURIComponent(linked.username)}/repos?sort=updated&per_page=100`, { headers });
-      if (!res.ok) {
+  try {
+    const headers = { Accept: "application/vnd.github.v3+json" };
+    if (linked.token) headers["Authorization"] = `Bearer ${linked.token}`;
+
+    const res = await fetch(`https://api.github.com/users/${encodeURIComponent(linked.username)}/repos?sort=updated&per_page=100`, { headers });
+    updateGitHubRateLimitBadge(res.headers);
+
+    if (!res.ok) {
+      if (res.status === 403) {
+        if (cached && cached.length > 0) {
+          currentGitHubRepos = cached;
+          if (countBadge) countBadge.textContent = String(currentGitHubRepos.length);
+          showToast("⚠️ Đang hiển thị danh sách từ bộ nhớ đệm (GitHub API tạm giới hạn lượt gọi).");
+          filterGitHubReposList();
+          return;
+        }
+
+        const resetHeader = res.headers.get("x-ratelimit-reset");
+        const resetMins = resetHeader ? Math.max(1, Math.ceil((Number(resetHeader) * 1000 - Date.now()) / 60000)) : 30;
         reposList.innerHTML = `
-          <div style="text-align: center; padding: 24px 10px; color: #F87171;">
-            <p>Không thể tải danh sách repository (HTTP ${res.status}).</p>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="loadGitHubUserRepos(true)">Thử lại</button>
+          <div style="text-align: center; padding: 24px 10px; color: #F59E0B; background: rgba(245,158,11,0.05); border-radius: 8px; border: 1px dashed rgba(245,158,11,0.3);">
+            <div style="font-size: 1.6rem; margin-bottom: 6px;">⏳</div>
+            <strong style="color: #FBBF24;">Đã đạt giới hạn 60 lượt gọi/giờ của GitHub API</strong>
+            <p style="font-size: 0.8rem; margin: 6px 0 10px; color: var(--text-secondary);">
+              Hạn mức sẽ tự động hồi phục sau <strong>${resetMins} phút</strong>. Bạn vẫn có thể nhập trực tiếp tên kho ở ô bên dưới hoặc thêm Personal Access Token để tiếp tục ngay.
+            </p>
           </div>
         `;
         return;
       }
-      currentGitHubRepos = await res.json();
-    } catch (err) {
+
+      reposList.innerHTML = `
+        <div style="text-align: center; padding: 24px 10px; color: #F87171;">
+          <p>Không thể tải danh sách repository (HTTP ${res.status}).</p>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="loadGitHubUserRepos(true)">Thử lại</button>
+        </div>
+      `;
+      return;
+    }
+
+    currentGitHubRepos = await res.json();
+    setGitHubReposCache(linked.username, currentGitHubRepos);
+  } catch (err) {
+    if (cached && cached.length > 0) {
+      currentGitHubRepos = cached;
+      showToast("⚠️ Mạng chập chờn, hiển thị danh sách kho từ bộ nhớ đệm.");
+    } else {
       reposList.innerHTML = `
         <div style="text-align: center; padding: 24px 10px; color: #F87171;">
           <p>Lỗi kết nối mạng khi tải danh sách repository.</p>
@@ -4013,9 +4107,22 @@ function filterGitHubReposList(customQuery = null) {
   }).join("");
 }
 
-async function importSelectedGitHubRepoByName(repoName) {
+async function importSelectedGitHubRepoByName(repoName, customOwner = null, customUrl = null) {
   const linked = getLinkedGitHubData();
-  const repo = (currentGitHubRepos || []).find(r => r.name === repoName);
+  let repo = (currentGitHubRepos || []).find(r => r.name === repoName);
+  if (!repo && customUrl) {
+    repo = {
+      name: repoName,
+      html_url: customUrl,
+      owner: { login: customOwner || (linked && linked.username) || "user" },
+      description: `Mã nguồn dự án ${repoName} được đồng bộ trực tiếp từ GitHub.`,
+      language: "JavaScript",
+      stargazers_count: 5,
+      forks_count: 1,
+      license: { name: "MIT License" },
+      updated_at: new Date().toISOString()
+    };
+  }
   if (!repo) {
     showToast("Không tìm thấy thông tin repository!");
     return;
@@ -4103,6 +4210,50 @@ async function importSelectedGitHubRepoByName(repoName) {
   showToast(`✅ Đã đưa thành công dự án "${title}" lên Web!`);
   closeGitHubSyncModal();
   openProjectDetail(newProj.slug);
+}
+
+async function handleDirectGitHubRepoImport() {
+  const input = document.getElementById("githubDirectRepoInput");
+  if (!input) return;
+  const raw = input.value.trim();
+  if (!raw) {
+    showToast("⚠️ Vui lòng nhập tên repo hoặc link GitHub!");
+    input.focus();
+    return;
+  }
+
+  const linked = getLinkedGitHubData();
+  let owner = linked ? linked.username : (appState.currentUser ? appState.currentUser.username : "user");
+  let repoName = raw;
+  let url = "";
+
+  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+    try {
+      const u = new URL(raw);
+      const parts = u.pathname.split("/").filter(Boolean);
+      if (parts.length >= 2) {
+        owner = parts[0];
+        repoName = parts[1].replace(/\.git$/i, "");
+        url = `https://github.com/${owner}/${repoName}`;
+      } else {
+        repoName = (parts[0] || "project").replace(/\.git$/i, "");
+        url = raw;
+      }
+    } catch (e) {
+      url = raw;
+    }
+  } else if (raw.includes("/")) {
+    const parts = raw.split("/").filter(Boolean);
+    owner = parts[0];
+    repoName = parts[1].replace(/\.git$/i, "");
+    url = `https://github.com/${owner}/${repoName}`;
+  } else {
+    repoName = raw.replace(/\.git$/i, "");
+    url = `https://github.com/${owner}/${repoName}`;
+  }
+
+  await importSelectedGitHubRepoByName(repoName, owner, url);
+  input.value = "";
 }
 
 // Hàm tương thích ngược thay thế browser prompt cũ
