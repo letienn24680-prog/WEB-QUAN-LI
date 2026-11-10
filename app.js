@@ -198,6 +198,7 @@ function getMergedProjectsList() {
     if (raw) {
       const custom = JSON.parse(raw);
       for (const c of custom) {
+        if (deleted.includes(c.id)) continue;
         const idx = list.findIndex((p) => p.id === c.id || p.slug === c.slug);
         if (idx >= 0) {
           list[idx] = { ...list[idx], ...c };
@@ -607,7 +608,7 @@ function navigateView(viewName, pushToHistory = true) {
     loadUserProfileAndAuthSettings();
     loadActiveSessionsUI();
   }
-  if (viewName === "portfolio") loadPortfolioView("minh_architect");
+  if (viewName === "portfolio") loadPortfolioView(appState.currentUser?.username || "admin");
   if (viewName === "admin") loadAdminOverview();
 }
 
@@ -1522,8 +1523,8 @@ function reloadCurrentProjectDetail() {
 
 async function handleVersionSwitch(ver) {
   appState.selectedVersion = ver;
-  document.getElementById("rollbackVersionBtn").style.display =
-    ver !== appState.currentProject.latest_version?.version_number ? "inline-flex" : "none";
+  const rollbackBtn = document.getElementById("rollbackVersionBtn");
+  if (rollbackBtn) rollbackBtn.style.display = "none";
   await loadVersionTreeAndFiles(appState.currentProject.slug, ver);
 }
 
@@ -1584,9 +1585,9 @@ function getCustomProjectFileMap(slug) {
 
 function getOfflineVersionTree(slug, ver) {
   const list = getMergedProjectsList();
-  const proj = list.find((p) => p.slug === slug) || OFFLINE_PROJECTS[0];
+  const proj = list.find((p) => p.slug === slug) || list[0] || {};
   const customMap = getCustomProjectFileMap(slug);
-  const fileMap = customMap || OFFLINE_FILES[proj.slug] || OFFLINE_FILES["vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo"];
+  const fileMap = customMap || (proj.slug && OFFLINE_FILES[proj.slug]) || {};
   const paths = Object.keys(fileMap);
 
   const root = { name: "root", type: "folder", children: [] };
@@ -1620,9 +1621,9 @@ function getOfflineVersionTree(slug, ver) {
 
 function getOfflineFileContent(slug, ver, filePath) {
   const list = getMergedProjectsList();
-  const proj = list.find((p) => p.slug === slug) || OFFLINE_PROJECTS[0];
+  const proj = list.find((p) => p.slug === slug) || list[0] || {};
   const customMap = getCustomProjectFileMap(slug);
-  const fileMap = customMap || OFFLINE_FILES[proj.slug] || OFFLINE_FILES["vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo"];
+  const fileMap = customMap || (proj.slug && OFFLINE_FILES[proj.slug]) || {};
   const content = fileMap[filePath] || fileMap["README.md"] || "# Nội dung tệp tin mã nguồn\n";
   const lines = content.split(/\r?\n/).length;
   return {
@@ -1670,33 +1671,55 @@ function getOfflineVersionDiff(slug) {
 }
 
 function getOfflinePortfolio(username) {
+  const current = appState.currentUser;
+  const isSelf = !username || (current && current.username === username);
+  const targetUsername = isSelf ? (current?.username || "admin") : username;
+  const isAdmin = targetUsername === "admin" || (isSelf && current?.role === "admin");
+  const targetDisplayName = isSelf 
+    ? (current?.display_name || (isAdmin ? "Quản Trị Viên (Admin)" : targetUsername)) 
+    : (targetUsername === "admin" ? "Quản Trị Viên (Admin)" : (targetUsername === "minh_architect" ? "Minh Architect (Pro Creator)" : targetUsername));
+  
+  const allProjects = getMergedProjectsList();
+  const ownedProjects = allProjects.filter((p) => p.owner_username === targetUsername);
+
+  const totalDownloads = ownedProjects.reduce((sum, p) => sum + (p.download_count || 0), 0);
+  const totalStars = ownedProjects.reduce((sum, p) => sum + (p.star_count || 0), 0);
+  const reputation = isAdmin ? 9999 : Math.max(100, ownedProjects.length * 150);
+
+  const badges = isAdmin
+    ? ["Quản Trị Tối Cao", "Bảo Mật Cấp 1", "Toàn Quyền Hệ Thống"]
+    : (ownedProjects.length > 0 ? ["Top Contributor", "Security Verified", "Docker Master"] : ["Thành Viên Mới", "Mã Nguồn Mở"]);
+
   return {
     user: {
-      username: username || "minh_architect",
-      display_name: "Minh Architect (Pro Creator)",
-      bio: "Principal System Architect & AI Open-Source Creator",
+      username: targetUsername,
+      display_name: targetDisplayName,
+      bio: isAdmin 
+        ? "Quản trị viên tối cao hệ thống mã nguồn NexaPanel" 
+        : (targetUsername === "minh_architect" ? "Principal System Architect & AI Open-Source Creator" : "Thành viên cộng đồng mã nguồn mở NexaPanel"),
       avatar_url: ""
     },
-    badges: ["Top 1% Contributor", "Security Verified", "Docker Master"],
+    badges,
     stats: {
-      totalDownloads: 2400,
-      totalStars: 557,
-      reputationPoints: 1280
+      totalDownloads,
+      totalStars,
+      reputationPoints: reputation
     },
     heatmapWeeks: [1, 2, 0, 3, 4, 2, 1, 3, 2, 4, 3, 2, 1, 0, 2, 4, 3, 1, 2, 3, 4, 2, 3, 1, 4, 2, 3, 1, 2, 4, 3, 2, 1, 3, 4, 2, 3, 1, 2, 4],
-    pinnedProjects: OFFLINE_PROJECTS
+    pinnedProjects: ownedProjects
   };
 }
 
 function getOfflineAdminOverview() {
+  const list = getMergedProjectsList();
   return {
     stats: {
-      totalProjects: 3,
+      totalProjects: list.length,
       quarantinedCount: 0,
-      cleanCount: 3,
+      cleanCount: list.length,
       blockedIpsCount: 0
     },
-    projects: OFFLINE_PROJECTS.map((p) => ({
+    projects: list.map((p) => ({
       id: p.id,
       title: p.title,
       slug: p.slug,
@@ -3280,16 +3303,18 @@ async function revokeSessionById(id) {
 // MÀN HÌNH 5: DEVELOPER PORTFOLIO & BIỂU ĐỒ NHIỆT 365 NGÀY
 // =============================================================================
 
-async function loadPortfolioView(username = "minh_architect") {
+async function loadPortfolioView(username = null) {
+  const effectiveUsername = username || appState.currentUser?.username || "admin";
   let d = null;
   try {
-    const res = await fetch(`/api/v1/users/${encodeURIComponent(username)}/portfolio`);
+    const res = await fetch(`/api/v1/users/${encodeURIComponent(effectiveUsername)}/portfolio`);
     if (res.ok) d = await res.json();
   } catch (e) {}
   if (!d || !d.user) {
-    d = getOfflinePortfolio(username);
+    d = getOfflinePortfolio(effectiveUsername);
   }
   const box = document.getElementById("portfolioContainer");
+  const pinned = d.pinnedProjects || [];
   box.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:20px;">
       <div>
@@ -3300,9 +3325,9 @@ async function loadPortfolioView(username = "minh_architect") {
         </div>
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        <div class="bento-box"><div>Tổng Lượt Tải</div><strong>${formatCompactMetric(d.stats.totalDownloads)}</strong></div>
-        <div class="bento-box"><div>Tổng Sao</div><strong>${d.stats.totalStars}</strong></div>
-        <div class="bento-box"><div>Điểm Uy Tín</div><strong>${d.stats.reputationPoints}</strong></div>
+        <div class="bento-box"><div>Tổng Lượt Tải</div><strong>${formatCompactMetric(d.stats.totalDownloads || 0)}</strong></div>
+        <div class="bento-box"><div>Tổng Sao</div><strong>${d.stats.totalStars || 0}</strong></div>
+        <div class="bento-box"><div>Điểm Uy Tín</div><strong>${d.stats.reputationPoints || 0}</strong></div>
       </div>
     </div>
     <h3>Biểu Đồ Nhiệt Đóng Góp Mã Nguồn 365 Ngày (Contribution Heatmap)</h3>
@@ -3310,21 +3335,34 @@ async function loadPortfolioView(username = "minh_architect") {
       ${(d.heatmapWeeks || []).map((lvl) => `<div class="heat-cell ${lvl > 0 ? "heat-" + lvl : ""}"></div>`).join("")}
     </div>
     <h3 style="margin:18px 0 12px;">Dự Án Tiêu Biểu Đã Xuất Bản</h3>
-    <div class="project-grid">
-      ${(d.pinnedProjects || [])
-        .map(
-          (p) => `
-        <div class="project-card" onclick="openProjectDetail('${escapeHtml(p.slug)}')">
-          <h3>${escapeHtml(p.title)}</h3>
-          <p style="color:var(--text-secondary);font-size:0.84rem;">${escapeHtml(p.short_description)}</p>
-          <div style="display:flex;justify-content:space-between;font-size:0.78rem;">
-            <span class="badge badge-emerald">Sạch (Clean) · ${p.health_score}/100</span>
-            <span>Sao: ${p.star_count} · Tải: ${formatCompactMetric(p.download_count)}</span>
-          </div>
-        </div>`
-        )
-        .join("")}
-    </div>
+    ${pinned.length > 0 ? `
+      <div class="project-grid">
+        ${pinned
+          .map(
+            (p) => `
+          <div class="project-card" onclick="openProjectDetail('${escapeHtml(p.slug)}')">
+            <h3>${escapeHtml(p.title)}</h3>
+            <p style="color:var(--text-secondary);font-size:0.84rem;">${escapeHtml(p.short_description)}</p>
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;">
+              <span class="badge badge-emerald">Sạch (Clean) · ${p.health_score || 98}/100</span>
+              <span>Sao: ${p.star_count || 0} · Tải: ${formatCompactMetric(p.download_count || 0)}</span>
+            </div>
+          </div>`
+          )
+          .join("")}
+      </div>
+    ` : `
+      <div style="text-align:center; padding:48px 24px; background:rgba(255,255,255,0.02); border:1px dashed var(--border); border-radius:12px; margin-top:12px;">
+        <div style="font-size:2.5rem; margin-bottom:12px;">📁</div>
+        <h4 style="margin-bottom:8px; color:var(--text-primary); font-size:1.05rem;">Chưa có dự án nào được xuất bản bởi tài khoản này</h4>
+        <p style="color:var(--text-secondary); font-size:0.88rem; max-width:480px; margin:0 auto 16px;">
+          Tài khoản chưa xuất bản mã nguồn nào lên website. Bạn có thể đăng tải dự án mới để chia sẻ hoặc lưu trữ an toàn.
+        </p>
+        <button class="btn btn-primary" onclick="navigateView('upload')">
+          + Đăng tải dự án mới
+        </button>
+      </div>
+    `}
   `;
 }
 
@@ -5404,6 +5442,12 @@ async function deleteCurrentProjectFromAdmin() {
   }
 
   deleteProjectFromStorage(p.id);
+  try {
+    await fetch(`/api/v1/projects/${encodeURIComponent(p.id)}`, {
+      method: "DELETE",
+      headers: apiHeaders()
+    });
+  } catch (e) {}
   closeEditProjectModal();
   showToast(`🗑️ Đã xóa dự án "${p.title}" thành công.`);
   navigateView("explore");
@@ -5417,6 +5461,16 @@ function deleteProjectFromStorage(id) {
   }
   const idx = OFFLINE_PROJECTS.findIndex((p) => p.id === id);
   if (idx >= 0) OFFLINE_PROJECTS.splice(idx, 1);
+  if (Array.isArray(appState.projects)) {
+    appState.projects = appState.projects.filter((p) => p.id !== id);
+  }
+  try {
+    const raw = localStorage.getItem("openhub_custom_projects");
+    if (raw) {
+      const custom = JSON.parse(raw).filter((p) => p.id !== id);
+      localStorage.setItem("openhub_custom_projects", JSON.stringify(custom));
+    }
+  } catch (e) {}
 }
 
 function quickFillAdminLogin() {
