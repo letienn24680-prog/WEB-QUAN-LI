@@ -4,6 +4,14 @@
     {
       "source": "/api/sepay/ipn",
       "destination": "/api/sepay/ipn.js"
+    },
+    {
+      "source": "/api/session",
+      "destination": "/api/session.js"
+    },
+    {
+      "source": "/api/v1/auth/session",
+      "destination": "/api/session.js"
     }
   ],
   "headers": [

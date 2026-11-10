@@ -380,6 +380,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   if ((isReload || hasBrowserCookie) && sessionActive && saved) {
     try {
       appState.currentUser = JSON.parse(saved);
+      appState.currentSessionToken = sessionStorage.getItem("openhub_session_token");
       if (appState.currentUser && appState.currentUser.username?.toLowerCase() === "admin") {
         appState.currentUser.role = "admin";
         sessionStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
@@ -432,29 +433,30 @@ window.addEventListener("DOMContentLoaded", async () => {
     );
   }
 
-  // ĐỒNG BỘ PHIÊN ĐA TAB THỜI GIAN THỰC (BROADCAST CHANNEL)
+  // ĐỒNG BỘ ĐÁ PHIÊN ĐA TAB THỜI GIAN THỰC (SINGLE SESSION VIA BROADCAST CHANNEL)
   if (typeof window !== "undefined" && typeof BroadcastChannel !== "undefined") {
     try {
       const authChannel = new BroadcastChannel("openhub_auth_channel");
       authChannel.onmessage = (ev) => {
         if (!ev || !ev.data) return;
-        if (ev.data.type === "REQUEST_SESSION_STATE" && appState.currentUser) {
-          authChannel.postMessage({
-            type: "RESPONSE_SESSION_STATE",
-            user: appState.currentUser,
-            token: sessionStorage.getItem("openhub_token")
-          });
-        } else if (ev.data.type === "RESPONSE_SESSION_STATE" && !appState.currentUser && ev.data.user) {
-          setAuthenticatedUser(ev.data.user, ev.data.token);
-          closeAuthModal();
+        // Nếu có đăng nhập mới bên tab/cửa sổ khác: đá phiên bên này ngay lập tức
+        if (ev.data.type === "NEW_LOGIN_KICK_OTHERS" && appState.currentUser) {
+          const myUser = (appState.currentUser.username || "").toLowerCase();
+          const incomingUser = (ev.data.username || "").toLowerCase();
+          const myToken = appState.currentSessionToken || sessionStorage.getItem("openhub_session_token");
+          if (myUser === incomingUser && myToken && myToken !== ev.data.newSessionToken) {
+            handleSessionKickedOut();
+          }
         } else if (ev.data.type === "LOGOUT_ALL_TABS" && appState.currentUser) {
           logoutUser(false);
         }
       };
-      if (!appState.currentUser && hasBrowserCookie) {
-        authChannel.postMessage({ type: "REQUEST_SESSION_STATE" });
-      }
     } catch (e) {}
+  }
+
+  // Kiểm tra ngay với máy chủ xem phiên có bị đăng nhập đè từ trình duyệt khác không
+  if (appState.currentUser) {
+    verifyActiveSessionWithServer();
   }
 });
 
@@ -3187,21 +3189,40 @@ function quickFillDemoOtp() {
   }
 }
 
-function setAuthenticatedUser(user, token) {
+function setAuthenticatedUser(user, token, customSessionToken = null) {
   if (user && user.username && user.username.toLowerCase() === "admin") {
     user.role = "admin";
   }
+  const sessionToken = customSessionToken || `sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   appState.currentUser = user;
+  appState.currentSessionToken = sessionToken;
+
   try {
     sessionStorage.setItem("openhub_user", JSON.stringify(user));
     if (token) sessionStorage.setItem("openhub_token", token);
     sessionStorage.setItem("openhub_session_active", "1");
+    sessionStorage.setItem("openhub_session_token", sessionToken);
     sessionStorage.setItem("openhub_last_active", String(Date.now()));
     // Session Cookie: tự động biến mất khi đóng toàn bộ cửa sổ/trình duyệt
     document.cookie = "openhub_browser_session=active; path=/; SameSite=Lax";
+
+    // 1. Gửi tín hiệu đá văng ngay lập tức các phiên cũ đang mở trong cùng trình duyệt
     if (typeof BroadcastChannel !== "undefined") {
       const authChan = new BroadcastChannel("openhub_auth_channel");
-      authChan.postMessage({ type: "RESPONSE_SESSION_STATE", user, token });
+      authChan.postMessage({
+        type: "NEW_LOGIN_KICK_OTHERS",
+        username: user.username,
+        newSessionToken: sessionToken
+      });
+    }
+
+    // 2. Gửi token phiên hoạt động lên Server để đồng bộ đá văng các trình duyệt khác (Chrome vs Edge)
+    if (!isLocalFileProtocol()) {
+      fetch("/api/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: user.username, sessionToken })
+      }).catch(() => {});
     }
   } catch (e) {
     /* ignore */
@@ -3210,6 +3231,55 @@ function setAuthenticatedUser(user, token) {
   updateWalletUI();
   updateCloudStorageUsage();
   updateNotificationBadge();
+}
+
+function handleSessionKickedOut() {
+  appState.currentUser = null;
+  appState.currentSessionToken = null;
+  try {
+    sessionStorage.removeItem("openhub_user");
+    sessionStorage.removeItem("openhub_token");
+    sessionStorage.removeItem("openhub_session_active");
+    sessionStorage.removeItem("openhub_session_token");
+    sessionStorage.removeItem("openhub_last_active");
+    document.cookie = "openhub_browser_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+  } catch (e) {}
+  updateAuthHeaderUi();
+  updateWalletUI();
+  updateCloudStorageUsage();
+  updateNotificationBadge();
+  navigateView("dashboard");
+  showToast("⚠️ Tài khoản đã đăng nhập ở nơi khác. Phiên này bị đăng xuất!", true);
+  openAuthModal(
+    "login",
+    null,
+    "⚠️ Tài khoản của bạn vừa đăng nhập ở một cửa sổ, trình duyệt hoặc thiết bị khác. Phiên làm việc tại đây đã bị đăng xuất để bảo mật!",
+    true
+  );
+}
+
+async function verifyActiveSessionWithServer() {
+  if (!appState.currentUser || isLocalFileProtocol()) return;
+  const username = appState.currentUser.username;
+  const myToken = appState.currentSessionToken || sessionStorage.getItem("openhub_session_token");
+  if (!username || !myToken) return;
+
+  try {
+    const res = await fetch(`/api/session?username=${encodeURIComponent(username)}`, {
+      cache: "no-store"
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.activeSessionToken && data.activeSessionToken !== myToken) {
+        handleSessionKickedOut();
+      }
+    }
+  } catch (e) {}
+}
+
+// Kiểm tra định kỳ mỗi 4 giây để đá phiên cũ khi có trình duyệt khác đăng nhập
+if (typeof window !== "undefined") {
+  setInterval(verifyActiveSessionWithServer, 4000);
 }
 
 function updateAuthHeaderUi() {
@@ -3260,10 +3330,12 @@ function updateAuthHeaderUi() {
 
 function logoutUser(broadcast = true) {
   appState.currentUser = null;
+  appState.currentSessionToken = null;
   try {
     sessionStorage.removeItem("openhub_user");
     sessionStorage.removeItem("openhub_token");
     sessionStorage.removeItem("openhub_session_active");
+    sessionStorage.removeItem("openhub_session_token");
     sessionStorage.removeItem("openhub_last_active");
     document.cookie = "openhub_browser_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
     if (broadcast && typeof BroadcastChannel !== "undefined") {

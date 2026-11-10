@@ -151,6 +151,29 @@ function createAppServer(platformInstance) {
         return sendJson(res, result.statusCode, result);
       }
 
+      if (pathname === "/api/session" || pathname === "/api/v1/auth/session") {
+        if (!global.__openhub_active_sessions) global.__openhub_active_sessions = {};
+        if (req.method === "GET") {
+          const u = parsedUrl.searchParams.get("username") || "";
+          const cleanUser = u.toLowerCase().trim();
+          const current = global.__openhub_active_sessions[cleanUser] || null;
+          return sendJson(res, 200, {
+            username: cleanUser,
+            activeSessionToken: current ? current.sessionToken : null
+          });
+        }
+        if (req.method === "POST") {
+          const { json } = await readRawAndJsonBody(req);
+          const cleanUser = String(json.username || "").toLowerCase().trim();
+          const sessionToken = String(json.sessionToken || "");
+          global.__openhub_active_sessions[cleanUser] = {
+            sessionToken,
+            loginTime: Date.now()
+          };
+          return sendJson(res, 200, { success: true, activeSessionToken: sessionToken });
+        }
+      }
+
       if (req.method === "GET" && pathname === "/api/v1/auth/sessions") {
         const user = resolveActingUser(req) || platform.users.get("u-contributor-1");
         return sendJson(res, 200, {

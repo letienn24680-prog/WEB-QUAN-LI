@@ -382,6 +382,19 @@ async function runAllTests() {
       const portData = await portRes.json();
       assert.equal(portData.heatmapWeeks.length, 52);
 
+      // Kiểm tra Single Session API (Đăng nhập bên này đá bên kia)
+      const sessPost = await fetch(`http://127.0.0.1:${port}/api/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: "admin", sessionToken: "token_browser_1" })
+      });
+      assert.equal(sessPost.status, 200);
+
+      const sessGet = await fetch(`http://127.0.0.1:${port}/api/session?username=admin`);
+      assert.equal(sessGet.status, 200);
+      const sessData = await sessGet.json();
+      assert.equal(sessData.activeSessionToken, "token_browser_1");
+
       const htmlRes = await fetch(`http://127.0.0.1:${port}/`);
       assert.equal(htmlRes.status, 200);
       assert.equal(htmlRes.headers.get("x-device-type"), "desktop");
