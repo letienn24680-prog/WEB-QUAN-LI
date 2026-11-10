@@ -234,15 +234,23 @@ function getDeletedProjectIds() {
   }
 }
 
+function isProjectDeleted(p) {
+  if (!p) return true;
+  const deleted = getDeletedProjectIds();
+  if (p.id && deleted.includes(p.id)) return true;
+  if (p.slug && deleted.includes(p.slug)) return true;
+  return false;
+}
+
 function getMergedProjectsList() {
   const deleted = getDeletedProjectIds();
-  let list = OFFLINE_PROJECTS.filter((p) => !deleted.includes(p.id));
+  let list = OFFLINE_PROJECTS.filter((p) => !deleted.includes(p.id) && !deleted.includes(p.slug));
   try {
     const raw = localStorage.getItem("openhub_custom_projects");
     if (raw) {
       const custom = JSON.parse(raw);
       for (const c of custom) {
-        if (deleted.includes(c.id)) continue;
+        if (deleted.includes(c.id) || deleted.includes(c.slug)) continue;
         const idx = list.findIndex((p) => p.id === c.id || p.slug === c.slug);
         if (idx >= 0) {
           list[idx] = { ...list[idx], ...c };
@@ -291,7 +299,8 @@ function getOfflineProjectsFilter({ q = "", category = "", tags = "", license = 
 
 function getOfflineProjectDetail(slug) {
   const list = getMergedProjectsList();
-  const p = list.find((it) => it.slug === slug || it.id === slug) || list[0];
+  const p = list.find((it) => it.slug === slug || it.id === slug);
+  if (!p) return null;
   return {
     ...p,
     reviews: [
@@ -872,6 +881,11 @@ async function triggerExploreSearch() {
 
   if (!data || !Array.isArray(data.items)) {
     data = getOfflineProjectsFilter({ q, category, tags, license, sort, hasDemo });
+  }
+
+  const deleted = getDeletedProjectIds();
+  if (data && Array.isArray(data.items)) {
+    data.items = data.items.filter((p) => !deleted.includes(p.id) && !deleted.includes(p.slug));
   }
 
   sk.style.display = "none";
@@ -4942,11 +4956,16 @@ async function moderateProjectAction(projectId, action) {
     showToast("Chỉ Quản Trị Viên (Admin) có quyền cao nhất mới được thực thi kiểm duyệt dự án!", true);
     return;
   }
-  await fetch(`/api/v1/admin/projects/${encodeURIComponent(projectId)}/moderate`, {
-    method: "POST",
-    headers: apiHeaders({ "X-Role": "admin" }),
-    body: JSON.stringify({ action, note: `Admin action: ${action}` })
-  });
+  if (action === "reject") {
+    deleteProjectFromStorage(projectId);
+  }
+  try {
+    await fetch(`/api/v1/admin/projects/${encodeURIComponent(projectId)}/moderate`, {
+      method: "POST",
+      headers: apiHeaders({ "X-Role": "admin" }),
+      body: JSON.stringify({ action, note: `Admin action: ${action}` })
+    });
+  } catch (e) {}
   showToast(`Đã thực thi quyết định kiểm duyệt: ${action.toUpperCase()}`);
   loadAdminOverview();
 }
@@ -4993,6 +5012,8 @@ async function handleCommandPaletteSearch(q) {
   if (items.length === 0) {
     items = getOfflineProjectsFilter({ q: clean }).items.slice(0, 5);
   }
+  const deleted = getDeletedProjectIds();
+  items = items.filter((p) => !deleted.includes(p.id) && !deleted.includes(p.slug));
   box.innerHTML = items
     .map(
       (p) => `
@@ -5007,6 +5028,11 @@ async function handleCommandPaletteSearch(q) {
 function addProjectToBundleFromCard(btnEl, id, slug, title) {
   if (!appState.currentUser) {
     openAuthModal("register", () => addProjectToBundleFromCard(btnEl, id, slug, title), "Vui lòng tạo tài khoản mới để lưu trữ dự án vào giỏ");
+    return;
+  }
+  const deleted = getDeletedProjectIds();
+  if ((id && deleted.includes(id)) || (slug && deleted.includes(slug))) {
+    showToast("Dự án này đã bị xóa hoặc gỡ bỏ khỏi hệ thống!", true);
     return;
   }
   if (!appState.bundleCart.some((p) => p.slug === slug)) {
@@ -5024,6 +5050,14 @@ function addCurrentProjectToBundle() {
     return;
   }
   if (!appState.currentProject) return;
+  const deleted = getDeletedProjectIds();
+  if (
+    (appState.currentProject.id && deleted.includes(appState.currentProject.id)) ||
+    (appState.currentProject.slug && deleted.includes(appState.currentProject.slug))
+  ) {
+    showToast("Dự án này đã bị xóa hoặc gỡ bỏ khỏi hệ thống!", true);
+    return;
+  }
   if (!appState.bundleCart.some((p) => p.slug === appState.currentProject.slug)) {
     appState.bundleCart.push({
       id: appState.currentProject.id,
@@ -5070,14 +5104,22 @@ function openBundleCartModal() {
   const list = document.getElementById("bundleCartList");
   if (!list) return;
 
+  const validProjects = getMergedProjectsList();
+  const deleted = getDeletedProjectIds();
+
+  // Luôn tự động loại bỏ các dự án đã gỡ khỏi giỏ hàng
+  if (Array.isArray(appState.bundleCart)) {
+    appState.bundleCart = appState.bundleCart.filter(
+      (p) => !deleted.includes(p.id) && !deleted.includes(p.slug) && validProjects.some((v) => v.slug === p.slug || v.id === p.id)
+    );
+    updateBundleBadgeCount();
+  }
+
   if (appState.bundleCart.length > 0) {
     let totalPrice = 0;
     const itemsHtml = appState.bundleCart
       .map((p) => {
-        const fullProj =
-          (appState.projects || []).find((x) => x.slug === p.slug) ||
-          (OFFLINE_PROJECTS || []).find((x) => x.slug === p.slug) ||
-          p;
+        const fullProj = validProjects.find((x) => x.slug === p.slug || x.id === p.id) || p;
         const price = Number(fullProj.price) || 0;
         totalPrice += price;
         const isFree = price === 0;
@@ -5128,44 +5170,65 @@ function openBundleCartModal() {
       </div>
     `;
   } else {
-    const suggestions = (appState.projects && appState.projects.length > 0 ? appState.projects : OFFLINE_PROJECTS).slice(0, 3);
-    const suggHtml = suggestions
-      .map(
-        (p) => `
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(30,41,59,0.6); border:1px solid var(--border); border-radius:6px;">
-        <div style="min-width:0; flex:1; margin-right:8px;">
-          <strong style="display:block; font-size:0.85rem; color:#F1F5F9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-            ${escapeHtml(p.title)}
-          </strong>
-          <span style="font-size:0.72rem; color:var(--text-secondary);">
-            ${Number(p.price) > 0 ? formatVND(p.price) : "Miễn phí"} · ${escapeHtml(p.license || "MIT")}
-          </span>
+    // Chỉ lấy gợi ý từ các dự án còn tồn tại và KHÔNG nằm trong danh sách đã xóa
+    const suggestions = validProjects.slice(0, 3);
+    if (suggestions.length > 0) {
+      const suggHtml = suggestions
+        .map(
+          (p) => `
+        <div class="bundle-sugg-card" style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(30,41,59,0.6); border:1px solid var(--border); border-radius:6px;">
+          <div style="min-width:0; flex:1; margin-right:8px;">
+            <strong style="display:block; font-size:0.85rem; color:#F1F5F9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              ${escapeHtml(p.title)}
+            </strong>
+            <span style="font-size:0.72rem; color:var(--text-secondary);">
+              ${Number(p.price) > 0 ? formatVND(p.price) : "Miễn phí"} · ${escapeHtml(p.license || "MIT")}
+            </span>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" onclick="addProjectToBundleFromCard(this, '${escapeHtml(p.id)}', '${escapeHtml(p.slug)}', '${escapeHtml(p.title)}'); openBundleCartModal();" style="padding:3px 8px; font-size:0.74rem; flex-shrink:0;">
+            + Thêm vào giỏ
+          </button>
         </div>
-        <button type="button" class="btn btn-primary btn-sm" onclick="addProjectToBundleFromCard(this, '${escapeHtml(p.id)}', '${escapeHtml(p.slug)}', '${escapeHtml(p.title)}'); openBundleCartModal();" style="padding:3px 8px; font-size:0.74rem; flex-shrink:0;">
-          + Thêm vào giỏ
-        </button>
-      </div>
-    `
-      )
-      .join("");
+      `
+        )
+        .join("");
 
-    list.innerHTML = `
-      <div style="text-align:center; padding:16px 10px 12px;">
-        <div style="font-size:2.2rem; margin-bottom:6px;">🛒</div>
-        <h4 style="margin:0 0 4px; font-size:0.95rem; color:#F8FAFC;">Giỏ dự án của bạn đang trống</h4>
-        <p style="color:var(--text-secondary); font-size:0.82rem; margin-bottom:14px;">
-          Hãy duyệt qua Kho Dự Án và bấm nút <strong>"Giỏ"</strong> để gom nhiều mã nguồn vào một gói tải ZIP duy nhất!
-        </p>
-        <div style="text-align:left;">
-          <div style="font-size:0.78rem; font-weight:600; color:#A78BFA; margin-bottom:6px;">
-            Gợi ý dự án nổi bật để thêm nhanh:
-          </div>
-          <div style="display:flex; flex-direction:column; gap:6px;">
-            ${suggHtml}
+      list.innerHTML = `
+        <div style="text-align:center; padding:16px 10px 12px;">
+          <div style="font-size:2.2rem; margin-bottom:6px;">🛒</div>
+          <h4 style="margin:0 0 4px; font-size:0.95rem; color:#F8FAFC;">Giỏ dự án của bạn đang trống</h4>
+          <p style="color:var(--text-secondary); font-size:0.82rem; margin-bottom:14px;">
+            Hãy duyệt qua Kho Dự Án và bấm nút <strong>"Giỏ"</strong> để gom nhiều mã nguồn vào một gói tải ZIP duy nhất!
+          </p>
+          <div style="text-align:left;">
+            <div style="font-size:0.78rem; font-weight:600; color:#A78BFA; margin-bottom:6px;">
+              Gợi ý dự án nổi bật để thêm nhanh:
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              ${suggHtml}
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
+    } else {
+      list.innerHTML = `
+        <div style="text-align:center; padding:24px 10px 18px;">
+          <div style="font-size:2.4rem; margin-bottom:8px;">🛒</div>
+          <h4 style="margin:0 0 6px; font-size:1rem; color:#F8FAFC;">Giỏ dự án của bạn đang trống</h4>
+          <p style="color:var(--text-secondary); font-size:0.84rem; max-width:380px; margin:0 auto 16px;">
+            Hiện không có dự án mẫu nào trong giỏ. Bạn có thể đăng tải dự án mới từ máy tính hoặc đồng bộ từ kho GitHub cá nhân lên Web!
+          </p>
+          <div style="display:flex; justify-content:center; gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="closeBundleCartModal(); openGitHubSyncModal();">
+              🐙 Đồng bộ từ GitHub
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="closeBundleCartModal(); navigateView('explore');">
+              🔍 Kho dự án
+            </button>
+          </div>
+        </div>
+      `;
+    }
   }
 }
 
@@ -6128,7 +6191,7 @@ async function deleteCurrentProjectFromAdmin() {
     return;
   }
 
-  deleteProjectFromStorage(p.id);
+  deleteProjectFromStorage(p.id, p.slug);
   try {
     await fetch(`/api/v1/projects/${encodeURIComponent(p.id)}`, {
       method: "DELETE",
@@ -6140,21 +6203,46 @@ async function deleteCurrentProjectFromAdmin() {
   navigateView("explore");
 }
 
-function deleteProjectFromStorage(id) {
+function deleteProjectFromStorage(id, slug = null) {
   const deleted = getDeletedProjectIds();
-  if (!deleted.includes(id)) {
-    deleted.push(id);
-    localStorage.setItem("openhub_deleted_projects", JSON.stringify(deleted));
+  const allProjs = [...(OFFLINE_PROJECTS || []), ...(appState.projects || []), ...getMergedProjectsList()];
+  const found = allProjs.find((x) => (id && x.id === id) || (slug && x.slug === slug));
+  const finalId = id || (found ? found.id : null);
+  const finalSlug = slug || (found ? found.slug : null);
+
+  if (finalId && !deleted.includes(finalId)) deleted.push(finalId);
+  if (finalSlug && !deleted.includes(finalSlug)) deleted.push(finalSlug);
+  localStorage.setItem("openhub_deleted_projects", JSON.stringify(deleted));
+
+  // Dọn sạch khỏi OFFLINE_PROJECTS
+  for (let i = OFFLINE_PROJECTS.length - 1; i >= 0; i--) {
+    const p = OFFLINE_PROJECTS[i];
+    if ((finalId && p.id === finalId) || (finalSlug && p.slug === finalSlug)) {
+      OFFLINE_PROJECTS.splice(i, 1);
+    }
   }
-  const idx = OFFLINE_PROJECTS.findIndex((p) => p.id === id);
-  if (idx >= 0) OFFLINE_PROJECTS.splice(idx, 1);
+
+  // Dọn sạch khỏi appState.projects
   if (Array.isArray(appState.projects)) {
-    appState.projects = appState.projects.filter((p) => p.id !== id);
+    appState.projects = appState.projects.filter(
+      (p) => (finalId ? p.id !== finalId : true) && (finalSlug ? p.slug !== finalSlug : true)
+    );
   }
+
+  // Dọn sạch khỏi giỏ hàng bundleCart
+  if (Array.isArray(appState.bundleCart)) {
+    appState.bundleCart = appState.bundleCart.filter(
+      (p) => (finalId ? p.id !== finalId : true) && (finalSlug ? p.slug !== finalSlug : true)
+    );
+    updateBundleBadgeCount();
+  }
+
   try {
     const raw = localStorage.getItem("openhub_custom_projects");
     if (raw) {
-      const custom = JSON.parse(raw).filter((p) => p.id !== id);
+      const custom = JSON.parse(raw).filter(
+        (p) => (finalId ? p.id !== finalId : true) && (finalSlug ? p.slug !== finalSlug : true)
+      );
       localStorage.setItem("openhub_custom_projects", JSON.stringify(custom));
     }
   } catch (e) {}

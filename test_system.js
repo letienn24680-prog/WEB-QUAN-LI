@@ -299,6 +299,15 @@ async function runAllTests() {
     assert.equal(bundleRes.includedCount, 1);
     assert.equal(bundleRes.excludedProjects.length, 1);
     assert.ok(bundleRes.manifestText.includes("OPENHUB PROJECT BUNDLE MANIFEST"));
+
+    // Kiểm tra loại bỏ triệt để dự án đã xóa/cách ly khỏi Bundle Cart (EC-15)
+    const bundleEmpty = platform.downloadProjectBundleCart([
+      "du-an-da-xoa-1",
+      "du-an-da-xoa-2"
+    ]);
+    assert.equal(bundleEmpty.statusCode, 422);
+    assert.equal(bundleEmpty.excludedProjects.length, 2);
+    assert.equal(bundleEmpty.error, "NO_VALID_PROJECTS_IN_BUNDLE");
   });
 
   // --------------------------------------------------------------------------
