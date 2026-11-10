@@ -576,6 +576,15 @@ async function runAllTests() {
     assert.ok(jsText.includes("checkSepayPaymentNow"), "app.js: Phải có hàm checkSepayPaymentNow");
     assert.ok(jsText.includes("handleSepayPaymentSuccess"), "app.js: Phải có hàm handleSepayPaymentSuccess");
     assert.ok(htmlText.includes("sepayDynamicQrImg"), "index.html: Phải có ảnh QR động SePay");
+
+    // 8. Kiểm tra Tính Năng Tải Lên Toàn Bộ Dự Án Trực Tiếp (File .ZIP & Thư Mục từ máy tính)
+    assert.ok(fs.existsSync(path.join(__dirname, "jszip.min.js")), "jszip.min.js: Phải có thư viện nén và giải nén JSZip nội bộ");
+    assert.ok(htmlText.includes("directUploadCard"), "index.html: Phải có khối Tải Lên Toàn Bộ Dự Án Trực Tiếp");
+    assert.ok(htmlText.includes("directZipInput") && htmlText.includes("directFolderInput"), "index.html: Phải có nút chọn file .ZIP và Thư mục dự án");
+    assert.ok(jsText.includes("handleDirectZipSelected"), "app.js: Phải có hàm xử lý tệp ZIP tải lên");
+    assert.ok(jsText.includes("handleDirectFolderSelected"), "app.js: Phải có hàm xử lý Thư mục tải lên");
+    assert.ok(jsText.includes("executeDirectFullProjectUpload"), "app.js: Phải có hàm xuất bản toàn bộ dự án");
+    assert.ok(jsText.includes("triggerRealZipDownload"), "app.js: Phải có hàm tạo và tải tệp ZIP thực tế cho người dùng");
   });
 
   console.log("\n======================================================================");

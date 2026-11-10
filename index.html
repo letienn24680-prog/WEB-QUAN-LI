@@ -1089,7 +1089,136 @@
             <div id="adminPendingProjectsTableWrap" class="table-responsive"></div>
           </div>
 
-          <div id="wizStepsCard" class="wizard-card">
+          <!-- =============================================================== -->
+          <!-- KHỐI TẢI LÊN TOÀN BỘ DỰ ÁN TRỰC TIẾP (FILE .ZIP HOẶC THƯ MỤC)  -->
+          <!-- =============================================================== -->
+          <div id="directUploadCard" class="wizard-card" style="display: none; margin-bottom: 1.5rem; border: 2px solid var(--purple-primary); box-shadow: 0 8px 32px rgba(139, 92, 246, 0.15);">
+            <div class="wizard-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h2 style="display: flex; align-items: center; gap: 8px;">
+                  <span>⚡ Tải Lên Toàn Bộ Dự Án Trực Tiếp</span>
+                  <span class="badge" style="background: #10B981; color: #FFFFFF; font-size: 0.72rem; padding: 2px 8px;">1 Chạm · Không Cần GitHub</span>
+                </h2>
+                <p id="directUploadSubheading">Bấm chọn tệp <strong>.ZIP</strong> hoặc chọn cả <strong>Thư mục dự án</strong> từ máy tính để tải toàn bộ mã nguồn lên Web ngay lập tức.</p>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAdvancedWizardSection()">
+                  ⚙️ Chế độ Nâng cao / Test Kịch bản
+                </button>
+              </div>
+            </div>
+
+            <!-- VÙNG KÉO THẢ & NÚT CHỌN FILE/THƯ MỤC -->
+            <div id="directDropZone" class="direct-drop-zone" ondragover="handleDirectDragOver(event)" ondragleave="handleDirectDragLeave(event)" ondrop="handleDirectDrop(event)">
+              <div style="font-size: 2.8rem; margin-bottom: 8px;">📦</div>
+              <h3 style="margin: 0 0 6px; font-size: 1.15rem; color: #F3F4F6;">Kéo thả tệp .ZIP hoặc Thư mục dự án vào đây</h3>
+              <p style="margin: 0 0 16px; font-size: 0.84rem; color: var(--text-secondary);">Hệ thống tự động giải nén, quét mã nguồn, lọc tệp rác (node_modules/.git) và tính dung lượng</p>
+              
+              <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                <input type="file" id="directZipInput" accept=".zip" style="display: none;" onchange="handleDirectZipSelected(event)">
+                <input type="file" id="directFolderInput" webkitdirectory directory multiple style="display: none;" onchange="handleDirectFolderSelected(event)">
+                
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('directZipInput').click()" style="padding: 10px 20px; font-size: 0.9rem;">
+                  📦 Chọn tệp ZIP dự án (.zip)
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('directFolderInput').click()" style="padding: 10px 20px; font-size: 0.9rem;">
+                  📁 Chọn toàn bộ Thư mục dự án
+                </button>
+              </div>
+            </div>
+
+            <!-- TRẠNG THÁI & FORM THÔNG TIN DỰ ÁN (HIỆN KHI ĐÃ CHỌN TỆP) -->
+            <div id="directUploadFormPane" style="display: none; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 18px; margin-top: 16px;">
+              <!-- Banner tóm tắt gói tệp đã nhận -->
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 1.2rem;">✅</span>
+                  <div>
+                    <strong style="color: #34D399; font-size: 0.92rem;" id="directSummaryTitle">Đã nhận toàn bộ dự án</strong>
+                    <div style="font-size: 0.78rem; color: #D1D5DB;" id="directSummaryMeta">0 tệp tin · 0 KB</div>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="toggleDirectFileListPreview()" style="font-size: 0.76rem; padding: 4px 10px;">
+                    👁️ Xem danh sách tệp (<span id="directFileCountBadge">0</span>)
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="resetDirectUpload()" style="font-size: 0.76rem; padding: 4px 10px; color: #EF4444;">
+                    ✕ Hủy chọn
+                  </button>
+                </div>
+              </div>
+
+              <!-- Danh sách tệp xem trước (ẩn/hiện) -->
+              <div id="directFileListPreview" style="display: none; max-height: 180px; overflow-y: auto; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 16px; font-family: var(--font-mono); font-size: 0.78rem; color: #A7F3D0;"></div>
+
+              <!-- Form thông tin nhanh -->
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="filter-label" for="directProjectTitle">Tên dự án (*):</label>
+                  <input type="text" id="directProjectTitle" class="form-input" placeholder="Ví dụ: Hệ thống nộp bài trực tuyến" oninput="handleDirectTitleInput(this.value)">
+                </div>
+                <div class="form-group">
+                  <label class="filter-label" for="directProjectSlug">Đường dẫn tĩnh (Slug tự động):</label>
+                  <input type="text" id="directProjectSlug" class="form-input" readonly placeholder="slug-tu-dong">
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top: 10px;">
+                <label class="filter-label" for="directProjectDesc">Mô tả ngắn gọn (*):</label>
+                <input type="text" id="directProjectDesc" class="form-input" placeholder="Tóm tắt công nghệ, chức năng chính của dự án...">
+              </div>
+
+              <div class="form-grid-3" style="margin-top: 10px;">
+                <div class="form-group">
+                  <label class="filter-label" for="directProjectCategory">Danh mục:</label>
+                  <select id="directProjectCategory" class="form-select"></select>
+                </div>
+                <div class="form-group">
+                  <label class="filter-label" for="directProjectLicense">Giấy phép:</label>
+                  <select id="directProjectLicense" class="form-select">
+                    <option value="MIT">MIT License</option>
+                    <option value="Apache-2.0">Apache-2.0</option>
+                    <option value="GPL-3.0">GPL-3.0</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="filter-label" for="directProjectTags">Thẻ công nghệ:</label>
+                  <input type="text" id="directProjectTags" class="form-input" value="TypeScript, React, Node.js">
+                </div>
+              </div>
+
+              <!-- ĐỊNH GIÁ / MIỄN PHÍ -->
+              <div style="margin-top: 14px; padding: 12px 14px; background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.25); border-radius: var(--radius-md);">
+                <div class="form-grid-2" style="align-items: center;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label class="filter-label" for="directProjectPrice">Định giá dự án (VNĐ — 0 = Miễn phí):</label>
+                    <input type="number" id="directProjectPrice" class="form-input" value="0" min="0" step="10000" placeholder="Nhập giá bán (VD: 50000)...">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0; padding-top: 20px;">
+                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                      <input type="checkbox" id="directProjectIsFreeCheck" checked onchange="handleDirectFreeCheck(this.checked)">
+                      <span><strong style="color: #34D399;">Dự án Miễn Phí (Free 0 VNĐ)</strong></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- GHI CHÚ ĐÀM PHÁN (DÀNH CHO THÀNH VIÊN NẾU KHÔNG PHẢI ADMIN) -->
+              <div id="directMemberNegotiationBox" style="display: none; margin-top: 12px;">
+                <label class="filter-label" for="directNegotiationNote">Ghi chú đàm phán giá gửi Admin (*):</label>
+                <textarea id="directNegotiationNote" class="form-textarea" rows="2" placeholder="Nhập đề xuất mức giá, chia sẻ doanh thu hoặc đề nghị duyệt miễn phí..."></textarea>
+              </div>
+
+              <!-- NÚT BẤM HOÀN TẤT TẢI LÊN -->
+              <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" id="directSubmitPublishBtn" class="btn btn-primary" onclick="executeDirectFullProjectUpload()" style="min-height: 46px; font-weight: 700; font-size: 0.95rem; padding: 0 24px;">
+                  🚀 Tải Lên &amp; Xuất Bản Toàn Bộ Dự Án
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="wizStepsCard" class="wizard-card" style="display: none;">
             <div class="wizard-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
               <div>
                 <h2>Đăng tải Dự án Mới (Dành cho Quản trị viên Admin)</h2>
@@ -1992,6 +2121,7 @@
   </div>
 
   <div id="toastBox" class="toast-notification" style="display: none;"></div>
+  <script src="jszip.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

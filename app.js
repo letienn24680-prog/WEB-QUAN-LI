@@ -526,20 +526,25 @@ function navigateView(viewName) {
     const isGuest = !appState.currentUser;
     const isAdmin = appState.currentUser?.role === "admin";
     const gate = document.getElementById("uploadAdminPermissionGate");
+    const directCard = document.getElementById("directUploadCard");
     const wizCard = document.getElementById("wizStepsCard");
     const memUpload = document.getElementById("memberUploadCard");
     const memMyProjs = document.getElementById("memberMyProjectsCard");
     const adminPending = document.getElementById("adminPendingProjectsCard");
 
     if (gate) gate.style.display = isGuest ? "block" : "none";
-    if (wizCard) wizCard.style.display = isAdmin ? "block" : "none";
+    if (directCard) {
+      directCard.style.display = isGuest ? "none" : "block";
+      populateDirectUploadCategories();
+      updateDirectUploadUIRole();
+    }
+    if (wizCard) wizCard.style.display = "none";
     if (adminPending) {
       adminPending.style.display = isAdmin ? "block" : "none";
       if (isAdmin) renderAdminPendingProjects();
     }
     if (memUpload) {
-      memUpload.style.display = (!isGuest && !isAdmin) ? "block" : "none";
-      if (!isGuest && !isAdmin) populateMemberUploadCategories();
+      memUpload.style.display = "none";
     }
     if (memMyProjs) {
       memMyProjs.style.display = !isGuest ? "block" : "none";
@@ -1496,9 +1501,28 @@ const OFFLINE_FILES = {
   }
 };
 
+function getCustomProjectFileMap(slug) {
+  try {
+    const raw = localStorage.getItem("openhub_custom_files_" + slug);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  const list = getMergedProjectsList();
+  const proj = list.find((p) => p.slug === slug);
+  if (proj && proj.files && Array.isArray(proj.files)) {
+    const map = {};
+    proj.files.forEach((f) => {
+      map[f.path] = f.content || `# ${f.path}\n`;
+    });
+    return map;
+  }
+  return null;
+}
+
 function getOfflineVersionTree(slug, ver) {
-  const proj = OFFLINE_PROJECTS.find((p) => p.slug === slug) || OFFLINE_PROJECTS[0];
-  const fileMap = OFFLINE_FILES[proj.slug] || OFFLINE_FILES["vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo"];
+  const list = getMergedProjectsList();
+  const proj = list.find((p) => p.slug === slug) || OFFLINE_PROJECTS[0];
+  const customMap = getCustomProjectFileMap(slug);
+  const fileMap = customMap || OFFLINE_FILES[proj.slug] || OFFLINE_FILES["vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo"];
   const paths = Object.keys(fileMap);
 
   const root = { name: "root", type: "folder", children: [] };
@@ -1531,8 +1555,10 @@ function getOfflineVersionTree(slug, ver) {
 }
 
 function getOfflineFileContent(slug, ver, filePath) {
-  const proj = OFFLINE_PROJECTS.find((p) => p.slug === slug) || OFFLINE_PROJECTS[0];
-  const fileMap = OFFLINE_FILES[proj.slug] || OFFLINE_FILES["vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo"];
+  const list = getMergedProjectsList();
+  const proj = list.find((p) => p.slug === slug) || OFFLINE_PROJECTS[0];
+  const customMap = getCustomProjectFileMap(slug);
+  const fileMap = customMap || OFFLINE_FILES[proj.slug] || OFFLINE_FILES["vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo"];
   const content = fileMap[filePath] || fileMap["README.md"] || "# Nội dung tệp tin mã nguồn\n";
   const lines = content.split(/\r?\n/).length;
   return {
@@ -1981,6 +2007,9 @@ async function handleOneClickDownload() {
     btn.textContent = "Đang tải xuống...";
   }
   await requestProjectDownload({ download_type: "full_archive" });
+  if (proj) {
+    triggerRealZipDownload(proj, `${proj.slug}-v${appState.selectedVersion || "1.0.0"}.zip`);
+  }
   appState.downloadBtnState = "success";
   if (btn) {
     btn.classList.remove("dl-state-downloading");
@@ -3355,6 +3384,413 @@ async function importSampleGitHubRepoFromUI() {
 }
 
 // =============================================================================
+// TẢI LÊN TOÀN BỘ DỰ ÁN TRỰC TIẾP (FILE .ZIP HOẶC THƯ MỤC MÃ NGUỒN TỪ MÁY TÍNH)
+// =============================================================================
+let currentDirectUploadFiles = [];
+
+function populateDirectUploadCategories() {
+  const sel = document.getElementById("directProjectCategory");
+  if (!sel || sel.children.length > 0) return;
+  const cats = appState.categories && appState.categories.length > 0 ? appState.categories : FALLBACK_CATEGORIES;
+  sel.innerHTML = cats.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+}
+
+function updateDirectUploadUIRole() {
+  const isAdmin = appState.currentUser?.role === "admin";
+  const btn = document.getElementById("directSubmitPublishBtn");
+  const negBox = document.getElementById("directMemberNegotiationBox");
+  const subheading = document.getElementById("directUploadSubheading");
+
+  if (isAdmin) {
+    if (btn) btn.textContent = "🚀 Tải Lên & Xuất Bản Toàn Bộ Dự Án Lên Web";
+    if (negBox) negBox.style.display = "none";
+    if (subheading) {
+      subheading.innerHTML = "Bấm chọn tệp <strong>.ZIP</strong> hoặc <strong>Thư mục dự án</strong> từ máy tính để đăng tải và xuất bản trực tiếp lên Web (Toàn quyền Admin).";
+    }
+  } else {
+    if (btn) btn.textContent = "🚀 Tải Lên Toàn Bộ Dự Án & Gửi Admin Duyệt";
+    if (negBox) negBox.style.display = "block";
+    if (subheading) {
+      subheading.innerHTML = "Bấm chọn tệp <strong>.ZIP</strong> hoặc <strong>Thư mục dự án</strong> từ máy tính để tải lên hệ thống và gửi Admin duyệt & đàm phán giá.";
+    }
+  }
+}
+
+function toggleAdvancedWizardSection() {
+  const wiz = document.getElementById("wizStepsCard");
+  if (!wiz) return;
+  wiz.style.display = wiz.style.display === "none" ? "block" : "none";
+  if (wiz.style.display === "block") {
+    wiz.scrollIntoView({ behavior: "smooth" });
+  }
+}
+
+async function handleDirectZipSelected(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (typeof JSZip === "undefined") {
+    showToast("Thư viện JSZip đang tải, vui lòng thử lại sau giây lát...", true);
+    return;
+  }
+
+  showToast(`Đang đọc tệp nén: ${file.name}...`);
+  try {
+    const zip = new JSZip();
+    const zipData = await zip.loadAsync(file);
+    const entries = [];
+
+    for (const [relativePath, zipEntry] of Object.entries(zipData.files)) {
+      if (zipEntry.dir) continue;
+      if (relativePath.includes("__MACOSX/") || relativePath.includes(".DS_Store") || relativePath.includes("Thumbs.db")) {
+        continue;
+      }
+      let content = "";
+      try {
+        content = await zipEntry.async("string");
+      } catch (e) {
+        content = await zipEntry.async("base64");
+      }
+      entries.push({
+        path: relativePath.replace(/^\/+/, ""),
+        content: content,
+        size: content.length
+      });
+    }
+
+    if (entries.length === 0) {
+      showToast("Tệp ZIP không chứa mã nguồn hợp lệ!", true);
+      return;
+    }
+
+    const suggestedName = file.name.replace(/\.zip$/i, "").replace(/[-_]+/g, " ");
+    setupDirectUploadWithEntries(entries, suggestedName);
+  } catch (err) {
+    console.error(err);
+    showToast("Không thể giải nén tệp ZIP: " + err.message, true);
+  }
+}
+
+async function handleDirectFolderSelected(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+
+  showToast(`Đang nạp ${files.length} tệp từ thư mục...`);
+  try {
+    const entries = [];
+    let rootFolderName = "";
+
+    for (const f of files) {
+      const relPath = f.webkitRelativePath || f.name;
+      if (!rootFolderName && relPath.includes("/")) {
+        rootFolderName = relPath.split("/")[0];
+      }
+      if (
+        relPath.includes("node_modules/") ||
+        relPath.includes("/node_modules/") ||
+        relPath.includes(".git/") ||
+        relPath.includes("/.git/") ||
+        relPath.includes(".DS_Store") ||
+        relPath.includes("Thumbs.db")
+      ) {
+        continue;
+      }
+
+      try {
+        const text = await f.text();
+        entries.push({
+          path: relPath.replace(/^\/+/, ""),
+          content: text,
+          size: f.size || text.length
+        });
+      } catch (e) {
+        /* skip binary */
+      }
+    }
+
+    if (entries.length === 0) {
+      showToast("Thư mục rỗng hoặc chỉ chứa tệp rác đã bị lọc!", true);
+      return;
+    }
+
+    const suggestedName = rootFolderName ? rootFolderName.replace(/[-_]+/g, " ") : "Dự án mã nguồn mới";
+    setupDirectUploadWithEntries(entries, suggestedName);
+  } catch (err) {
+    console.error(err);
+    showToast("Lỗi khi đọc thư mục: " + err.message, true);
+  }
+}
+
+function handleDirectDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const zone = document.getElementById("directDropZone");
+  if (zone) zone.classList.add("drag-active");
+}
+
+function handleDirectDragLeave(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const zone = document.getElementById("directDropZone");
+  if (zone) zone.classList.remove("drag-active");
+}
+
+async function handleDirectDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const zone = document.getElementById("directDropZone");
+  if (zone) zone.classList.remove("drag-active");
+
+  const files = Array.from(e.dataTransfer?.files || []);
+  if (!files.length) return;
+
+  const zipFile = files.find((f) => f.name.toLowerCase().endsWith(".zip"));
+  if (zipFile) {
+    handleDirectZipSelected({ target: { files: [zipFile] } });
+  } else {
+    handleDirectFolderSelected({ target: { files } });
+  }
+}
+
+function setupDirectUploadWithEntries(entries, suggestedName) {
+  currentDirectUploadFiles = entries;
+  const totalBytes = entries.reduce((acc, e) => acc + (e.size || 0), 0);
+
+  const titleInput = document.getElementById("directProjectTitle");
+  const slugInput = document.getElementById("directProjectSlug");
+  const descInput = document.getElementById("directProjectDesc");
+  const formPane = document.getElementById("directUploadFormPane");
+  const summaryTitle = document.getElementById("directSummaryTitle");
+  const summaryMeta = document.getElementById("directSummaryMeta");
+  const countBadge = document.getElementById("directFileCountBadge");
+  const previewBox = document.getElementById("directFileListPreview");
+
+  if (titleInput) titleInput.value = suggestedName;
+  const slug = suggestedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || ("project-" + Date.now());
+  if (slugInput) slugInput.value = slug;
+  if (descInput) descInput.value = `Dự án mã nguồn ${suggestedName} gồm ${entries.length} tệp tin hoàn chỉnh.`;
+
+  if (summaryTitle) summaryTitle.textContent = `Đã nhận toàn bộ dự án: ${suggestedName}`;
+  if (summaryMeta) summaryMeta.textContent = `${entries.length} tệp tin mã nguồn · Dung lượng: ${formatBytes(totalBytes)}`;
+  if (countBadge) countBadge.textContent = String(entries.length);
+
+  if (previewBox) {
+    previewBox.innerHTML = entries
+      .slice(0, 50)
+      .map((e) => `<div>📄 ${escapeHtml(e.path)} <span style="color:#9CA3AF;">(${formatBytes(e.size)})</span></div>`)
+      .join("") + (entries.length > 50 ? `<div style="color:#60A5FA;margin-top:4px;">... và còn ${entries.length - 50} tệp khác</div>` : "");
+  }
+
+  if (formPane) formPane.style.display = "block";
+
+  const upJson = document.getElementById("upEntriesJson");
+  if (upJson) upJson.value = JSON.stringify(entries.slice(0, 30), null, 2);
+  const memJson = document.getElementById("memProjectEntriesJson");
+  if (memJson) memJson.value = JSON.stringify(entries.slice(0, 30), null, 2);
+
+  showToast(`✅ Đã nạp thành công toàn bộ dự án (${entries.length} tệp)!`);
+}
+
+function toggleDirectFileListPreview() {
+  const box = document.getElementById("directFileListPreview");
+  if (!box) return;
+  box.style.display = box.style.display === "none" ? "block" : "none";
+}
+
+function resetDirectUpload() {
+  currentDirectUploadFiles = [];
+  const formPane = document.getElementById("directUploadFormPane");
+  if (formPane) formPane.style.display = "none";
+  const zipInp = document.getElementById("directZipInput");
+  if (zipInp) zipInp.value = "";
+  const folderInp = document.getElementById("directFolderInput");
+  if (folderInp) folderInp.value = "";
+}
+
+function handleDirectTitleInput(val) {
+  const slugInput = document.getElementById("directProjectSlug");
+  if (slugInput) {
+    slugInput.value = val.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  }
+}
+
+function handleDirectFreeCheck(isChecked) {
+  const priceInput = document.getElementById("directProjectPrice");
+  if (!priceInput) return;
+  if (isChecked) {
+    priceInput.value = "0";
+  } else if (Number(priceInput.value) === 0) {
+    priceInput.value = "50000";
+  }
+}
+
+async function executeDirectFullProjectUpload() {
+  if (!appState.currentUser) {
+    openAuthModal("login", () => executeDirectFullProjectUpload(), "Vui lòng đăng nhập để đăng tải dự án");
+    return;
+  }
+
+  if (!currentDirectUploadFiles || currentDirectUploadFiles.length === 0) {
+    showToast("Vui lòng chọn tệp .ZIP hoặc Thư mục dự án trước khi tải lên!", true);
+    return;
+  }
+
+  const title = (document.getElementById("directProjectTitle")?.value || "").trim();
+  if (!title) {
+    showToast("Vui lòng nhập tên dự án!", true);
+    return;
+  }
+
+  const slug = (document.getElementById("directProjectSlug")?.value || "").trim() || (title.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "project-" + Date.now());
+  const desc = (document.getElementById("directProjectDesc")?.value || "").trim() || `Dự án mã nguồn ${title}`;
+  const category_id = Number(document.getElementById("directProjectCategory")?.value) || 1;
+  const license_type = document.getElementById("directProjectLicense")?.value || "MIT";
+  const tags = (document.getElementById("directProjectTags")?.value || "Web Application").split(",").map((s) => s.trim()).filter(Boolean);
+  const isFree = document.getElementById("directProjectIsFreeCheck")?.checked ?? true;
+  const price = isFree ? 0 : (Number(document.getElementById("directProjectPrice")?.value) || 0);
+
+  const isAdmin = appState.currentUser.role === "admin";
+  const totalBytes = currentDirectUploadFiles.reduce((acc, e) => acc + (e.size || 0), 0);
+
+  const fileMap = {};
+  currentDirectUploadFiles.forEach((e) => {
+    fileMap[e.path] = e.content || "";
+  });
+  try {
+    localStorage.setItem("openhub_custom_files_" + slug, JSON.stringify(fileMap));
+  } catch (e) {}
+
+  if (isAdmin) {
+    const newProject = {
+      id: "p-" + Date.now(),
+      slug,
+      title,
+      short_description: desc,
+      category_id,
+      category_name: (FALLBACK_CATEGORIES.find((c) => c.id === category_id)?.name || "Web Application"),
+      license_type,
+      demo_url: null,
+      tags,
+      price,
+      health_score: 99,
+      star_count: 1,
+      download_count: 0,
+      view_count: 1,
+      owner_username: appState.currentUser.username,
+      version: "1.0.0",
+      size_bytes: totalBytes || 10240,
+      sha256_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      quick_start_guide: "1. Giải nén gói mã nguồn .ZIP\n2. Cài đặt các thư viện phụ thuộc (npm install / pip install)\n3. Khởi chạy dự án",
+      latest_version: {
+        version_number: "1.0.0",
+        changelog: "Phát hành phiên bản đầu tiên",
+        size_bytes: totalBytes || 10240,
+        sha256_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      versions: [{ version_number: "1.0.0", changelog: "Phát hành phiên bản đầu tiên" }],
+      files: currentDirectUploadFiles.map((e) => ({
+        path: e.path,
+        size: e.size || (e.content ? e.content.length : 100),
+        type: "file"
+      }))
+    };
+
+    let customList = [];
+    try {
+      const raw = localStorage.getItem("openhub_custom_projects");
+      if (raw) customList = JSON.parse(raw);
+    } catch (e) {}
+    customList.unshift(newProject);
+    localStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+
+    updateCloudStorageUsage(totalBytes);
+
+    addSystemNotification({
+      title: "Xuất bản dự án thành công!",
+      message: `Dự án "${title}" (${currentDirectUploadFiles.length} tệp) đã xuất bản lên Web thành công với giá ${formatVND(price)}.`,
+      type: "success"
+    });
+
+    showToast(`🎉 Đã tải lên và xuất bản toàn bộ dự án "${title}" thành công!`);
+    resetDirectUpload();
+    openProjectDetail(slug);
+  } else {
+    const note = (document.getElementById("directNegotiationNote")?.value || "").trim() || "Thành viên tải lên toàn bộ dự án mã nguồn.";
+    const pendingReq = {
+      id: "PEN-" + Date.now(),
+      username: appState.currentUser.username,
+      title,
+      slug,
+      short_description: desc,
+      category_id,
+      license_type,
+      tags,
+      proposed_price: price,
+      is_free: isFree,
+      negotiation_note: note,
+      entries_count: currentDirectUploadFiles.length,
+      entries: currentDirectUploadFiles,
+      status: "pending",
+      createdAt: new Date().toISOString()
+    };
+
+    const pendingList = getStoredPendingProjects();
+    pendingList.unshift(pendingReq);
+    saveStoredPendingProjects(pendingList);
+
+    updateCloudStorageUsage(totalBytes);
+
+    addSystemNotification({
+      title: "Đã gửi dự án lên hệ thống",
+      message: `Dự án "${title}" (${currentDirectUploadFiles.length} tệp) đã được gửi đến Admin để phê duyệt & đàm phán giá.`,
+      type: "info"
+    });
+
+    showToast(`🚀 Đã tải lên toàn bộ dự án "${title}" và gửi Admin phê duyệt thành công!`);
+    resetDirectUpload();
+    renderMyUploadedProjects();
+  }
+}
+
+async function triggerRealZipDownload(project, filename) {
+  if (typeof JSZip === "undefined") {
+    showToast(`Đang tải gói ${filename}...`);
+    return;
+  }
+  try {
+    showToast(`Đang nén và đóng gói tệp ${filename}...`);
+    const zip = new JSZip();
+    const customMap = getCustomProjectFileMap(project.slug);
+    const fileMap = customMap || OFFLINE_FILES[project.slug] || OFFLINE_FILES["vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo"];
+
+    if (fileMap) {
+      for (const [path, content] of Object.entries(fileMap)) {
+        zip.file(path, content);
+      }
+    } else if (project.files && Array.isArray(project.files)) {
+      for (const f of project.files) {
+        zip.file(f.path, f.content || `# ${f.path}\n`);
+      }
+    } else {
+      zip.file("README.md", `# ${project.title}\n\n${project.short_description}\n`);
+    }
+
+    const blob = await zip.generateAsync({ type: "blob" });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || `${project.slug}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    showToast(`✅ Đã tải xuống tệp ${filename} thành công!`);
+  } catch (err) {
+    console.error("Lỗi khi tạo file zip:", err);
+  }
+}
+
+// =============================================================================
 // MÀN HÌNH 7: KIỂM DUYỆT AN TOÀN, AUTO-QUARANTINE & AUDIT LOGS
 // =============================================================================
 
@@ -4483,12 +4919,16 @@ function handleBuyOrDownloadProject(projectId, slug) {
 }
 
 function downloadProjectBundleDirectly(slug) {
+  const proj = getProjectByIdOrSlug(null, slug);
   const d = {
     signedUrl: `#download-${slug}.zip`,
     filename: `${slug}-full-source.zip`,
     sha256_checksum: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   };
   showToast(`Đang tải xuống gói mã nguồn: ${d.filename}`);
+  if (proj) {
+    triggerRealZipDownload(proj, d.filename);
+  }
 }
 
 function openEditProjectModalById(id) {

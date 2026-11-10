@@ -1838,6 +1838,23 @@ tr:hover td {
   transition: all 180ms ease;
 }
 
+.direct-drop-zone {
+  border: 2px dashed rgba(139, 92, 246, 0.45);
+  border-radius: var(--radius-lg);
+  padding: 32px 20px;
+  text-align: center;
+  background: rgba(139, 92, 246, 0.04);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.direct-drop-zone:hover,
+.direct-drop-zone.drag-active {
+  border-color: #A855F7;
+  background: rgba(168, 85, 247, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(168, 85, 247, 0.2);
+}
+
 .wizard-header {
   margin-bottom: 20px;
   padding-bottom: 16px;
