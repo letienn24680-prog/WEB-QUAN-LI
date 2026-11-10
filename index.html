@@ -1546,7 +1546,7 @@
   </div>
 
   <!-- MODAL ĐĂNG KÝ / ĐĂNG NHẬP BẢO MẬT (AUTH GATE MODAL - REGISTER TAB FIRST) -->
-  <div id="authModal" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)closeAuthModal()">
+  <div id="authModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="authModalHeading" aria-describedby="authModalSubtitle" style="display: none;" onclick="if(event.target===this)closeAuthModal()">
     <div class="modal-box auth-modal-box">
       <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -2150,7 +2150,7 @@
   </div>
 
   <!-- MODAL XÁC NHẬN HÀNH ĐỘNG IN-APP (THAY THẾ BROWSER CONFIRM) -->
-  <div id="appConfirmModal" class="modal-backdrop" style="display: none; z-index: 99999;" onclick="if(event.target===this)closeAppConfirmModal(false)">
+  <div id="appConfirmModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="appConfirmTitle" aria-describedby="appConfirmMessage" style="display: none; z-index: 99999;" onclick="if(event.target===this)closeAppConfirmModal(false)">
     <div class="modal-box" style="max-width: 440px; border: 1px solid rgba(139,92,246,0.35); box-shadow: 0 16px 48px rgba(0,0,0,0.85); background: var(--bg-surface);">
       <div class="modal-header" style="border-bottom: 1px solid var(--border); padding-bottom: 10px;">
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -2174,7 +2174,7 @@
     </div>
   </div>
 
-  <div id="toastBox" class="toast-notification" style="display: none;"></div>
+  <div id="toastBox" class="toast-notification" role="status" aria-live="polite" aria-atomic="true" style="display: none;"></div>
   <script src="jszip.min.js"></script>
   <script src="app.js"></script>
 </body>
