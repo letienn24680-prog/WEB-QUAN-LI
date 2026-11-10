@@ -3329,6 +3329,19 @@ function setAuthenticatedUser(user, token, customSessionToken = null) {
   updateWalletUI();
   updateCloudStorageUsage();
   updateNotificationBadge();
+
+  // Tự động khôi phục giao diện mua dung lượng nếu khách vừa đăng nhập sau khi chọn gói
+  try {
+    const pendingPlanRaw = sessionStorage.getItem("openhub_pending_storage_plan");
+    if (pendingPlanRaw) {
+      sessionStorage.removeItem("openhub_pending_storage_plan");
+      const plan = JSON.parse(pendingPlanRaw);
+      setTimeout(() => {
+        openStorageUpgradeModal();
+        showToast(`Bạn đang chọn ${plan.planName}. Bấm "Mua ngay" để hoàn tất!`);
+      }, 400);
+    }
+  } catch (e) {}
 }
 
 function handleSessionKickedOut() {
@@ -6652,37 +6665,35 @@ function updateCloudStorageUsage() {
 }
 
 function openStorageUpgradeModal() {
-  const user = appState.currentUser;
-  if (!user) {
-    showToast("Vui lòng đăng nhập để xem chi tiết và nâng cấp dung lượng lưu trữ!");
-    openAuthModal("login");
-    return;
-  }
-
   const modal = document.getElementById("storageUpgradeModal");
   if (!modal) return;
 
-  const currentUsername = (user.username || "").toLowerCase();
+  const user = appState.currentUser;
+  const currentUsername = (user?.username || "").toLowerCase();
   let totalLimitGb = 5.0;
-  const customQuota = localStorage.getItem("openhub_storage_quota_" + currentUsername);
-  if (customQuota) {
-    totalLimitGb = parseFloat(customQuota) || 5.0;
+  if (currentUsername) {
+    const customQuota = localStorage.getItem("openhub_storage_quota_" + currentUsername);
+    if (customQuota) {
+      totalLimitGb = parseFloat(customQuota) || 5.0;
+    }
   }
 
   let userUsedMb = 0;
-  const allProjs = getMergedProjectsList();
-  allProjs.forEach((p) => {
-    const pOwner = (p.owner_username || p.uploadedBy || "").toLowerCase();
-    if (pOwner === currentUsername) {
+  if (currentUsername) {
+    const allProjs = getMergedProjectsList();
+    allProjs.forEach((p) => {
+      const pOwner = (p.owner_username || p.uploadedBy || "").toLowerCase();
+      if (pOwner === currentUsername) {
+        userUsedMb += Number(p.size_mb) || (p.size_bytes ? p.size_bytes / (1024 * 1024) : 0);
+      }
+    });
+    const myPending = getStoredPendingProjects().filter(
+      (p) => (p.owner_username || "").toLowerCase() === currentUsername
+    );
+    myPending.forEach((p) => {
       userUsedMb += Number(p.size_mb) || (p.size_bytes ? p.size_bytes / (1024 * 1024) : 0);
-    }
-  });
-  const myPending = getStoredPendingProjects().filter(
-    (p) => (p.owner_username || "").toLowerCase() === currentUsername
-  );
-  myPending.forEach((p) => {
-    userUsedMb += Number(p.size_mb) || (p.size_bytes ? p.size_bytes / (1024 * 1024) : 0);
-  });
+    });
+  }
 
   const limitMb = totalLimitGb * 1024;
   const pct = Math.min(100, Math.max(0, (userUsedMb / limitMb) * 100));
@@ -6692,14 +6703,14 @@ function openStorageUpgradeModal() {
   const barEl = document.getElementById("storageModalBar");
   const balEl = document.getElementById("storageModalWalletBalance");
 
-  if (userEl) userEl.textContent = user.full_name || user.username;
+  if (userEl) userEl.textContent = user ? (user.full_name || user.username) : "Khách (Chưa đăng nhập)";
   if (usageEl) {
     usageEl.textContent = userUsedMb < 1024
       ? `${userUsedMb.toFixed(1)} MB / ${totalLimitGb.toFixed(1)} GB`
       : `${(userUsedMb / 1024).toFixed(2)} GB / ${totalLimitGb.toFixed(1)} GB`;
   }
   if (barEl) barEl.style.width = `${pct.toFixed(0)}%`;
-  if (balEl) balEl.textContent = formatVND(getStoredWalletBalance(user.username));
+  if (balEl) balEl.textContent = user ? formatVND(getStoredWalletBalance(user.username)) : "0 đ";
 
   modal.style.display = "flex";
 }
@@ -6712,7 +6723,10 @@ function closeStorageUpgradeModal() {
 function purchaseStoragePlan(addGb, costVnd, planName) {
   const user = appState.currentUser;
   if (!user) {
-    showToast("Vui lòng đăng nhập để nâng cấp dung lượng!");
+    // Lưu lại gói người dùng vừa chọn, sau khi đăng nhập xong sẽ tự động mở lại
+    sessionStorage.setItem("openhub_pending_storage_plan", JSON.stringify({ addGb, costVnd, planName }));
+    showToast(`Vui lòng đăng nhập hoặc tạo tài khoản để kích hoạt ${planName}!`);
+    closeStorageUpgradeModal();
     openAuthModal("login");
     return;
   }
