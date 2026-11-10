@@ -248,7 +248,7 @@ function isProjectDeleted(p) {
 }
 
 function getMergedProjectsList() {
-  const deleted = getDeletedProjectIds();
+  const deleted = isLocalFileProtocol() ? getDeletedProjectIds() : [];
   const baseList = (Array.isArray(appState.projects) && appState.projects.length > 0)
     ? appState.projects
     : OFFLINE_PROJECTS;
@@ -839,6 +839,10 @@ async function fetchSharedProjectsFromServer() {
 }
 
 async function loadMetaAndInit() {
+  if (!isLocalFileProtocol()) {
+    // Dọn sạch danh sách xóa cục bộ trong session cũ để đồng bộ 100% với CSDL Server
+    sessionStorage.removeItem("openhub_deleted_projects");
+  }
   let data = null;
   try {
     const res = await fetch("/api/v1/meta");
@@ -964,9 +968,12 @@ async function triggerExploreSearch() {
     data = getOfflineProjectsFilter({ q, category, tags, license, sort, hasDemo });
   }
 
-  const deleted = getDeletedProjectIds();
-  if (data && Array.isArray(data.items)) {
-    data.items = data.items.filter((p) => !deleted.includes(p.id) && !deleted.includes(p.slug));
+  // Trên môi trường Web Server, server là nguồn dữ liệu chuẩn xác duy nhất; chỉ lọc xóa khi chạy offline file://
+  if (isLocalFileProtocol()) {
+    const deleted = getDeletedProjectIds();
+    if (data && Array.isArray(data.items)) {
+      data.items = data.items.filter((p) => !deleted.includes(p.id) && !deleted.includes(p.slug));
+    }
   }
 
   sk.style.display = "none";
@@ -1047,6 +1054,7 @@ function resetExploreFilters() {
   document.getElementById("filterLicense").value = "";
   document.getElementById("filterSort").value = "downloads";
   document.getElementById("filterHasDemo").checked = false;
+  sessionStorage.removeItem("openhub_deleted_projects");
   triggerExploreSearch();
 }
 
@@ -3921,11 +3929,20 @@ async function submitAndScanWizardProject() {
     customList.unshift(newProject);
     sessionStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
     if (!isLocalFileProtocol()) {
-      fetch("/api/v1/projects", {
-        method: "POST",
-        headers: apiHeaders(),
-        body: JSON.stringify(newProject)
-      }).catch(() => {});
+      try {
+        const res = await fetch("/api/v1/projects", {
+          method: "POST",
+          headers: apiHeaders(),
+          body: JSON.stringify(newProject)
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData && resData.project) {
+            newProject = { ...newProject, ...resData.project };
+          }
+        }
+      } catch (err) {}
+      await fetchSharedProjectsFromServer();
     }
 
     created = { project: newProject };
@@ -4946,11 +4963,20 @@ async function executeDirectFullProjectUpload() {
     customList.unshift(newProject);
     sessionStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
     if (!isLocalFileProtocol()) {
-      fetch("/api/v1/projects", {
-        method: "POST",
-        headers: apiHeaders(),
-        body: JSON.stringify(newProject)
-      }).catch(() => {});
+      try {
+        const res = await fetch("/api/v1/projects", {
+          method: "POST",
+          headers: apiHeaders(),
+          body: JSON.stringify(newProject)
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData && resData.project) {
+            newProject = { ...newProject, ...resData.project };
+          }
+        }
+      } catch (err) {}
+      await fetchSharedProjectsFromServer();
     }
 
     updateCloudStorageUsage(totalBytes);
@@ -6498,6 +6524,7 @@ async function deleteCurrentProjectFromAdmin() {
       method: "DELETE",
       headers: apiHeaders()
     });
+    await fetchSharedProjectsFromServer();
   } catch (e) {}
   closeEditProjectModal();
   showToast(`🗑️ Đã xóa dự án "${p.title}" thành công.`);
@@ -6511,9 +6538,14 @@ function deleteProjectFromStorage(id, slug = null) {
   const finalId = id || (found ? found.id : null);
   const finalSlug = slug || (found ? found.slug : null);
 
-  if (finalId && !deleted.includes(finalId)) deleted.push(finalId);
-  if (finalSlug && !deleted.includes(finalSlug)) deleted.push(finalSlug);
-  sessionStorage.setItem("openhub_deleted_projects", JSON.stringify(deleted));
+  if (isLocalFileProtocol()) {
+    if (finalId && !deleted.includes(finalId)) deleted.push(finalId);
+    if (finalSlug && !deleted.includes(finalSlug)) deleted.push(finalSlug);
+    sessionStorage.setItem("openhub_deleted_projects", JSON.stringify(deleted));
+  } else {
+    // Trên máy chủ web, dọn sạch session để lấy dữ liệu đồng bộ từ server
+    sessionStorage.removeItem("openhub_deleted_projects");
+  }
 
   // Gửi lệnh xóa tới máy chủ để xóa vĩnh viễn trên cơ sở dữ liệu chung cho toàn bộ người dùng
   if (!isLocalFileProtocol()) {
@@ -7498,6 +7530,16 @@ function adminApprovePendingProject(id) {
   if (idx >= 0) customList[idx] = fullProjData;
   else customList.unshift(fullProjData);
   sessionStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+
+  if (!isLocalFileProtocol()) {
+    try {
+      fetch("/api/v1/projects", {
+        method: "POST",
+        headers: apiHeaders(),
+        body: JSON.stringify(fullProjData)
+      }).then(() => fetchSharedProjectsFromServer());
+    } catch (e) {}
+  }
 
   addSystemNotification({
     title: "Dự án đã được duyệt xuất bản!",

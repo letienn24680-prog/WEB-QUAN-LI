@@ -6,13 +6,49 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_RAW_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+
+function getCleanSupabaseUrl() {
+  let u = (SUPABASE_RAW_URL || "").trim();
+  // Tự động chuẩn hóa nếu người dùng dán URL dạng dashboard https://supabase.com/dashboard/project/<id>
+  if (u.includes("supabase.com/dashboard/project/")) {
+    const projId = u.split("supabase.com/dashboard/project/")[1].split("/")[0].split("?")[0];
+    if (projId) return `https://${projId}.supabase.co`;
+  }
+  return u.replace(/\/$/, "");
+}
 
 const TMP_DIR = os.tmpdir();
 const PROJECTS_FILE = path.join(TMP_DIR, "openhub_shared_projects.json");
+const DELETED_FILE = path.join(TMP_DIR, "openhub_shared_deleted_slugs.json");
 const USERS_FILE = path.join(TMP_DIR, "openhub_shared_users.json");
 const TOKENS_FILE = path.join(TMP_DIR, "openhub_verification_tokens.json");
+
+function getGlobalDeletedSlugs() {
+  let del = [];
+  try {
+    if (fs.existsSync(DELETED_FILE)) {
+      const parsed = JSON.parse(fs.readFileSync(DELETED_FILE, "utf8"));
+      if (Array.isArray(parsed)) del = parsed;
+    }
+  } catch (e) {}
+  if (Array.isArray(global.__openhub_deleted_slugs)) {
+    del = [...new Set([...del, ...global.__openhub_deleted_slugs])];
+  }
+  return del;
+}
+
+function recordGlobalDeletedSlug(slugOrId) {
+  if (!slugOrId) return;
+  if (!Array.isArray(global.__openhub_deleted_slugs)) global.__openhub_deleted_slugs = [];
+  if (!global.__openhub_deleted_slugs.includes(slugOrId)) {
+    global.__openhub_deleted_slugs.push(slugOrId);
+  }
+  try {
+    fs.writeFileSync(DELETED_FILE, JSON.stringify(global.__openhub_deleted_slugs), "utf8");
+  } catch (e) {}
+}
 
 // Mẫu dự án khởi tạo mặc định ban đầu nếu cơ sở dữ liệu chưa có
 const DEFAULT_SEED_PROJECTS = [
@@ -79,11 +115,13 @@ const DEFAULT_SEED_PROJECTS = [
 ];
 
 function isSupabaseConfigured() {
-  return Boolean(SUPABASE_URL && SUPABASE_KEY);
+  const url = getCleanSupabaseUrl();
+  return Boolean(url && SUPABASE_KEY);
 }
 
 async function supabaseFetch(table, options = {}) {
-  const url = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${table}${options.query ? "?" + options.query : ""}`;
+  const baseUrl = getCleanSupabaseUrl();
+  const url = `${baseUrl}/rest/v1/${table}${options.query ? "?" + options.query : ""}`;
   const headers = {
     "apikey": SUPABASE_KEY,
     "Authorization": `Bearer ${SUPABASE_KEY}`,
@@ -101,6 +139,7 @@ async function supabaseFetch(table, options = {}) {
 // 1. DỰ ÁN DÙNG CHUNG (PROJECTS)
 // -----------------------------------------------------------------------------
 async function getAllProjects() {
+  const deletedSlugs = getGlobalDeletedSlugs();
   let list = [];
   if (isSupabaseConfigured()) {
     try {
@@ -133,10 +172,11 @@ async function getAllProjects() {
     cached = [...cached, ...global.__openhub_shared_projects];
   }
 
-  // Hợp nhất: Dự án từ Supabase + Dự án từ bộ nhớ + Mẫu mặc định khởi tạo
+  // Hợp nhất: Dự án từ Supabase + Dự án từ bộ nhớ + Mẫu mặc định khởi tạo (trừ những cái đã bị xóa)
   const merged = [...list];
   for (const item of [...cached, ...DEFAULT_SEED_PROJECTS]) {
     if (!item || !item.slug) continue;
+    if (deletedSlugs.includes(item.id) || deletedSlugs.includes(item.slug)) continue;
     const existing = merged.find((p) => p.slug === item.slug || (p.id && item.id && p.id === item.id));
     if (!existing) {
       merged.push(item);
@@ -145,7 +185,7 @@ async function getAllProjects() {
     }
   }
 
-  return merged.filter((p) => !p.deleted_at);
+  return merged.filter((p) => !p.deleted_at && !deletedSlugs.includes(p.id) && !deletedSlugs.includes(p.slug));
 }
 
 async function saveProject(project) {
@@ -189,6 +229,9 @@ async function saveProject(project) {
 }
 
 async function deleteProject(id, slug) {
+  recordGlobalDeletedSlug(id);
+  recordGlobalDeletedSlug(slug);
+
   if (isSupabaseConfigured()) {
     try {
       const matchQuery = id ? `id=eq.${encodeURIComponent(id)}` : `slug=eq.${encodeURIComponent(slug)}`;
