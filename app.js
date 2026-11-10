@@ -281,6 +281,19 @@ function getOfflineDashboardAnalytics(rangeDays = 7) {
   };
 }
 
+// Tự động khôi phục quyền Quản Trị Viên (Admin) tối cao ngay khi tải script
+(function autoHealAdminRole() {
+  try {
+    const saved = localStorage.getItem("openhub_user");
+    if (saved) {
+      const u = JSON.parse(saved);
+      if (u && u.username && u.username.toLowerCase() === "admin" && u.role !== "admin") {
+        u.role = "admin";
+        localStorage.setItem("openhub_user", JSON.stringify(u));
+      }
+    }
+  } catch (e) {}
+})();
 
 window.addEventListener("DOMContentLoaded", async () => {
   setupKeyboardShortcuts();
@@ -291,7 +304,14 @@ window.addEventListener("DOMContentLoaded", async () => {
   // Khôi phục phiên làm việc đã lưu (nếu có)
   try {
     const saved = localStorage.getItem("openhub_user");
-    if (saved) appState.currentUser = JSON.parse(saved);
+    if (saved) {
+      appState.currentUser = JSON.parse(saved);
+      // BẢO VỆ TỐI CAO: Tài khoản admin luôn luôn là role "admin", tự động khôi phục nếu lỡ bị đổi thành moderator/contributor
+      if (appState.currentUser && appState.currentUser.username?.toLowerCase() === "admin") {
+        appState.currentUser.role = "admin";
+        localStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
+      }
+    }
   } catch (e) {
     appState.currentUser = null;
   }
@@ -2596,15 +2616,17 @@ async function submitLoginFromModal() {
       );
 
       if (matched) {
+        const isAdminUser = Boolean(matched.username && matched.username.toLowerCase() === "admin");
         d = {
           user: {
-            id: matched.id || "usr-" + Date.now(),
+            id: matched.id || (isAdminUser ? "u-admin-root" : "usr-" + Date.now()),
             username: matched.username,
             display_name: matched.display_name || matched.username,
             email: matched.email,
-            role: matched.role || "developer"
+            role: isAdminUser ? "admin" : (matched.role || "developer"),
+            balance: isAdminUser ? 999999999 : (matched.balance || 0)
           },
-          accessToken: "mock-jwt-token-" + Date.now()
+          accessToken: (isAdminUser ? "mock-jwt-admin-" : "mock-jwt-token-") + Date.now()
         };
         loggedIn = true;
       } else if (
@@ -2943,6 +2965,9 @@ function quickFillDemoOtp() {
 }
 
 function setAuthenticatedUser(user, token) {
+  if (user && user.username && user.username.toLowerCase() === "admin") {
+    user.role = "admin";
+  }
   appState.currentUser = user;
   try {
     localStorage.setItem("openhub_user", JSON.stringify(user));
@@ -2957,6 +2982,9 @@ function setAuthenticatedUser(user, token) {
 }
 
 function updateAuthHeaderUi() {
+  if (appState.currentUser && appState.currentUser.username && appState.currentUser.username.toLowerCase() === "admin") {
+    appState.currentUser.role = "admin";
+  }
   const guestBox = document.getElementById("topGuestAuthButtons");
   const userWidget = document.getElementById("topUserAuthWidget");
   const userNameEl = document.getElementById("topUserName");
@@ -5612,6 +5640,15 @@ function loadUserProfileAndAuthSettings() {
     return;
   }
 
+  // BẢO VỆ TỐI CAO & TỰ ĐỘNG KHÔI PHỤC: Nếu username là "admin", LUÔN LUÔN ÉP role = "admin"
+  if (u.username && u.username.toLowerCase() === "admin") {
+    u.role = "admin";
+    try {
+      localStorage.setItem("openhub_user", JSON.stringify(u));
+    } catch (e) {}
+    updateAuthHeaderUi();
+  }
+
   if (loggedOutCard) loggedOutCard.style.display = "none";
   if (loggedInCard) loggedInCard.style.display = "block";
 
@@ -5890,7 +5927,16 @@ function submitActivationKey() {
     openAuthModal("login", null, "Vui lòng đăng nhập trước khi kích hoạt key vai trò.");
     return;
   }
-  if (appState.currentUser.role === "admin") {
+  if (
+    appState.currentUser.role === "admin" ||
+    (appState.currentUser.username && appState.currentUser.username.toLowerCase() === "admin")
+  ) {
+    appState.currentUser.role = "admin";
+    try {
+      localStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
+    } catch (e) {}
+    updateAuthHeaderUi();
+    loadUserProfileAndAuthSettings();
     showToast("👑 Quản Trị Viên (Admin) là tài khoản tối cao độc nhất và đã có toàn quyền, không thể nhập Key kích hoạt!", true);
     return;
   }
