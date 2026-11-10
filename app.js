@@ -509,9 +509,19 @@ function updateStickyMobileDownloadBar() {
 function navigateView(viewName, pushToHistory = true) {
   // Chốt bảo mật: Khách vãng lai xem trang chủ Dashboard/Explore tự do, nhưng khi truy cập chức năng đăng tải hoặc quản trị yêu cầu tài khoản
   if ((viewName === "upload" || viewName === "admin") && !appState.currentUser) {
-    const titles = { upload: "Đăng tải dự án mới", admin: "Quản trị an toàn" };
-    openAuthModal("register", () => navigateView(viewName), `Vui lòng tạo tài khoản mới để truy cập chức năng ${titles[viewName] || "này"}`);
+    const titles = { upload: "Đăng tải dự án mới", admin: "Kiểm duyệt an toàn" };
+    openAuthModal("register", () => navigateView(viewName), `Vui lòng đăng nhập để truy cập chức năng ${titles[viewName] || "này"}`);
     return;
+  }
+
+  // PHÂN QUYỀN TRUNG TÂM KIỂM DUYỆT AN TOÀN: Chỉ tài khoản Admin và Kiểm Duyệt Viên (MOD) mới được truy cập
+  if (viewName === "admin") {
+    const roleKey = String(appState.currentUser?.role || "").toLowerCase();
+    if (roleKey !== "admin" && roleKey !== "moderator") {
+      showToast("Chỉ Quản Trị Viên (Admin) và Kiểm Duyệt Viên (MOD) mới có quyền truy cập trung tâm kiểm duyệt!", true);
+      navigateView("dashboard", false);
+      return;
+    }
   }
 
   // Điều hướng lịch sử trình duyệt (Hỗ trợ nút Back / Lùi trang không cần bấm menu 3 gạch)
@@ -4099,7 +4109,13 @@ async function simulateAutoQuarantineAttack() {
 
 async function loadAdminOverview() {
   const currentUser = appState.currentUser;
-  const isMod = currentUser?.role === "moderator";
+  const roleKey = String(currentUser?.role || "").toLowerCase();
+  if (roleKey !== "admin" && roleKey !== "moderator") {
+    showToast("Chỉ Quản Trị Viên (Admin) và Kiểm Duyệt Viên (MOD) mới có quyền truy cập trung tâm kiểm duyệt!", true);
+    navigateView("dashboard", false);
+    return;
+  }
+  const isMod = roleKey === "moderator";
 
   let d = null;
   try {
