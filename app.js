@@ -1590,6 +1590,19 @@ async function openProjectDetail(slug) {
     demoLink.style.display = "none";
   }
 
+  const ghLink = document.getElementById("detailGitHubSourceLink");
+  if (ghLink) {
+    if (d.github_repo_url) {
+      ghLink.href = d.github_repo_url;
+      ghLink.style.display = "inline-flex";
+      ghLink.style.alignItems = "center";
+      ghLink.style.justifyContent = "center";
+      ghLink.style.gap = "6px";
+    } else {
+      ghLink.style.display = "none";
+    }
+  }
+
   document.getElementById("detailReadmeContainer").innerHTML = formatMarkdownSimple(d.readme_content || "");
   document.getElementById("detailQuickStartContainer").innerHTML = formatMarkdownSimple(d.quick_start_guide || "");
 
@@ -4167,6 +4180,12 @@ async function importSelectedGitHubRepoByName(repoName, customOwner = null, cust
     download_count: Math.max(repo.forks_count || 0, 1),
     tags: ["github-sync", repo.language || "open-source", repo.name].filter(Boolean),
     created_at: new Date().toISOString(),
+    readme_content: readmeContent,
+    quick_start_guide: `### Hướng dẫn chạy dự án ${title}\n\n1. Clone kho lưu trữ từ GitHub:\n\`\`\`bash\ngit clone ${cleanUrl}\ncd ${repo.name}\n\`\`\`\n2. Cài đặt các gói phụ thuộc:\n\`\`\`bash\n${repo.language === "Python" ? "pip install -r requirements.txt" : "npm install"}\n\`\`\`\n3. Khởi chạy ứng dụng:\n\`\`\`bash\n${repo.language === "Python" ? "python main.py" : "npm start"}\n\`\`\`\n`,
+    versions: [
+      { version_number: "1.0.0", archive_size_bytes: readmeContent.length + 1024, release_notes: "Phiên bản đồng bộ trực tiếp từ GitHub." }
+    ],
+    latest_version: { version_number: "1.0.0", archive_size_bytes: readmeContent.length + 1024 },
     files: [
       { name: "README.md", size: readmeContent.length, path: "README.md", content: readmeContent },
       { name: "package.json", size: 512, path: "package.json", content: JSON.stringify({ name: repo.name, version: "1.0.0", description: repo.description || "", repository: cleanUrl }, null, 2) },
