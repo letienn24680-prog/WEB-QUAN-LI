@@ -2713,15 +2713,10 @@ function openAuthModal(tab = "register", callback = null, desc = "Bạn cần t�
   document.body.classList.add("scroll-locked");
 
   const closeBtn = modal.querySelector(".btn-close");
-  const isRequired = forceLock || !appState.currentUser;
-  if (closeBtn) closeBtn.style.display = isRequired ? "none" : "block";
+  if (closeBtn) closeBtn.style.display = "block";
 }
 
 function closeAuthModal() {
-  if (!appState.currentUser) {
-    showToast("🔒 Bạn cần đăng nhập để bắt đầu phiên làm việc mới!", true);
-    return;
-  }
   const modal = document.getElementById("authModal");
   if (modal) modal.style.display = "none";
   document.body.classList.remove("scroll-locked");
@@ -3091,18 +3086,6 @@ async function submitModalOtpVerification() {
         status: "active"
       };
       token = "jwt-token-" + Date.now();
-    }
-      // Local fallback: chấp nhận mã OTP 6 số
-      isVerified = true;
-      verifiedUser = {
-        id: "usr-" + Date.now(),
-        username: appState.tempReg?.username || "developer",
-        display_name: appState.tempReg?.displayName || appState.tempReg?.username || "Lập trình viên mới",
-        email: email,
-        role: "developer",
-        status: "active"
-      };
-      token = "mock-jwt-token-" + Date.now();
     }
 
     setAuthenticatedUser(verifiedUser, token);
