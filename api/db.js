@@ -5,6 +5,7 @@
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
+const crypto = require("crypto");
 
 const SUPABASE_RAW_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
@@ -374,6 +375,10 @@ async function verifyTokenAndActivateUser(email, enteredOtp) {
     created_at: new Date().toISOString()
   };
 
+  const hashedPwd = crypto.createHash("sha256").update(String(newUser.password || "")).digest("hex");
+  newUser.password_hash = hashedPwd;
+  delete newUser.password; // Bảo mật: Không lưu mật khẩu thuần trong CSDL
+
   if (isSupabaseConfigured()) {
     try {
       await supabaseFetch("users", {
@@ -382,7 +387,7 @@ async function verifyTokenAndActivateUser(email, enteredOtp) {
           username: newUser.username,
           display_name: newUser.display_name,
           email: newUser.email,
-          password_hash: newUser.password,
+          password_hash: hashedPwd,
           role: newUser.role,
           status: "active"
         }
@@ -418,7 +423,7 @@ const DEFAULT_SEED_USERS = [
     username: "Tienle100",
     display_name: "Tiến Lê",
     email: "tienle100@gmail.com",
-    password: "Tien1109@#",
+    password_hash: "c5fdec98fbdd0ffe5a8e0ac07e9b0e05aeb262a3ac2d77132ee9dd8e954d09ae",
     role: "developer",
     balance: 0,
     status: "active"
@@ -428,7 +433,7 @@ const DEFAULT_SEED_USERS = [
     username: "admin",
     display_name: "Quản Trị Viên (Admin)",
     email: "admin@openhub.vn",
-    password: "admin1109@#",
+    password_hash: "7fe46e669d68a5db1d431e890a181b5c2c54e79ad27576185eac08da02f70533",
     role: "admin",
     balance: 999999999,
     status: "active"
@@ -437,6 +442,7 @@ const DEFAULT_SEED_USERS = [
 
 async function findUserByIdentifier(identifier, password) {
   const cleanId = String(identifier || "").toLowerCase().trim();
+  const hashedPwd = crypto.createHash("sha256").update(String(password || "")).digest("hex");
 
   // 1. Kiểm tra Supabase
   if (isSupabaseConfigured()) {
@@ -448,7 +454,13 @@ async function findUserByIdentifier(identifier, password) {
         const rows = await res.json();
         if (Array.isArray(rows) && rows.length > 0) {
           const row = rows[0];
-          if (!row.password_hash || row.password_hash === password || row.password === password) {
+          if (
+            !row.password_hash ||
+            row.password_hash === hashedPwd ||
+            row.password_hash === password ||
+            row.password === password ||
+            row.password === hashedPwd
+          ) {
             return {
               id: row.id,
               username: row.username,
@@ -474,7 +486,17 @@ async function findUserByIdentifier(identifier, password) {
   } catch (e) {}
 
   const allUsers = [...users, ...DEFAULT_SEED_USERS];
-  return allUsers.find((u) => ((u.username && u.username.toLowerCase() === cleanId) || (u.email && u.email.toLowerCase() === cleanId)) && u.password === password) || null;
+  return (
+    allUsers.find(
+      (u) =>
+        ((u.username && u.username.toLowerCase() === cleanId) ||
+         (u.email && u.email.toLowerCase() === cleanId)) &&
+        (u.password_hash === hashedPwd ||
+         u.password === password ||
+         u.password_hash === password ||
+         u.password === hashedPwd)
+    ) || null
+  );
 }
 
 module.exports = {

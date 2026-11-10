@@ -195,10 +195,11 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Tài khoản người dùng Tiến Lê
+    // Tài khoản người dùng Tiến Lê (hỗ trợ cả mật khẩu thường và mã băm SHA-256)
+    const hashedCleanPwd = crypto.createHash("sha256").update(cleanPwd).digest("hex");
     if (
       (cleanId === "tienle100" || cleanId === "tienle100@gmail.com") &&
-      cleanPwd === "Tien1109@#"
+      (cleanPwd === "Tien1109@#" || hashedCleanPwd === "c5fdec98fbdd0ffe5a8e0ac07e9b0e05aeb262a3ac2d77132ee9dd8e954d09ae")
     ) {
       return res.status(200).json({
         success: true,

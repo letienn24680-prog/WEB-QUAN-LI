@@ -2899,6 +2899,29 @@ function isLocalFileProtocol() {
   return window.location.protocol === "file:" || !window.location.protocol.startsWith("http");
 }
 
+async function hashSha256(str) {
+  try {
+    if (window.crypto && window.crypto.subtle) {
+      const buf = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(str || "")));
+      return Array.from(new Uint8Array(buf))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    }
+  } catch (e) {}
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  const s = String(str || "");
+  for (let i = 0; i < s.length; i++) {
+    const ch = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+  h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (h2 >>> 0).toString(16).padStart(8, "0") + (h1 >>> 0).toString(16).padStart(8, "0");
+}
+
 function getLocalRegisteredUsers() {
   try {
     const raw = localStorage.getItem("openhub_registered_users") || sessionStorage.getItem("openhub_registered_users");
@@ -2908,18 +2931,25 @@ function getLocalRegisteredUsers() {
   }
 }
 
-function saveLocalRegisteredUser(user) {
+async function saveLocalRegisteredUser(user) {
   try {
     const list = getLocalRegisteredUsers();
+    const hashed = user.password_hash || (user.password ? await hashSha256(user.password) : "");
+    const safeUser = {
+      ...user,
+      password_hash: hashed
+    };
+    delete safeUser.password; // Bảo mật: Không lưu mật khẩu thuần trong bộ nhớ trình duyệt
+
     const idx = list.findIndex(
       (u) =>
         (u.username && u.username.toLowerCase() === user.username.toLowerCase()) ||
         (u.email && u.email.toLowerCase() === user.email.toLowerCase())
     );
     if (idx >= 0) {
-      list[idx] = { ...list[idx], ...user };
+      list[idx] = { ...list[idx], ...safeUser };
     } else {
-      list.push(user);
+      list.push(safeUser);
     }
     localStorage.setItem("openhub_registered_users", JSON.stringify(list));
     sessionStorage.setItem("openhub_registered_users", JSON.stringify(list));
@@ -2984,11 +3014,12 @@ async function submitLoginFromModal() {
     // 2. Xác thực Local & Fallback (hoạt động khi server chưa có dữ liệu hoặc offline)
     if (!loggedIn) {
       const localUsers = getLocalRegisteredUsers();
+      const hashedPwd = await hashSha256(password);
       const matched = localUsers.find(
         (u) =>
           ((u.username && u.username.toLowerCase() === identifier.toLowerCase()) ||
            (u.email && u.email.toLowerCase() === identifier.toLowerCase())) &&
-          u.password === password
+          (u.password_hash === hashedPwd || u.password === password || u.password_hash === password)
       );
 
       if (matched) {
@@ -3007,7 +3038,7 @@ async function submitLoginFromModal() {
         loggedIn = true;
       } else if (
         (identifier.toLowerCase() === "tienle100" || identifier.toLowerCase() === "tienle100@gmail.com") &&
-        password === "Tien1109@#"
+        (password === "Tien1109@#" || hashedPwd === "c5fdec98fbdd0ffe5a8e0ac07e9b0e05aeb262a3ac2d77132ee9dd8e954d09ae")
       ) {
         d = {
           user: {
