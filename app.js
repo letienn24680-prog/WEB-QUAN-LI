@@ -1757,22 +1757,25 @@ function closeChatModal() {
 function renderChatMessages() {
   const box = document.getElementById("chatMessagesBox");
   if (!box) return;
-  box.innerHTML = DEMO_CHATS.map((c) => {
+  const isAdmin = appState.currentUser?.role === "admin";
+  box.innerHTML = DEMO_CHATS.map((c, idx) => {
     let roleBadge = "";
     const roleLower = String(c.role || "").toLowerCase();
     if (roleLower === "admin" || roleLower.includes("quản trị")) {
-      roleBadge = `<span class="badge" style="background:rgba(239,68,68,0.2);color:#F87171;font-size:0.65rem;font-weight:700;padding:1px 5px;">Quản Trị Viên</span>`;
+      roleBadge = `<span class="badge" style="background:rgba(239,68,68,0.25);color:#FCA5A5;border:1px solid rgba(239,68,68,0.4);font-size:0.65rem;font-weight:800;padding:1px 6px;">👑 Quản Trị Viên (Cao Nhất)</span>`;
     } else if (roleLower === "moderator" || roleLower.includes("kiểm duyệt")) {
-      roleBadge = `<span class="badge" style="background:rgba(14,165,233,0.2);color:#38BDF8;font-size:0.65rem;font-weight:700;padding:1px 5px;">Kiểm Duyệt Viên</span>`;
+      roleBadge = `<span class="badge" style="background:rgba(14,165,233,0.2);color:#38BDF8;font-size:0.65rem;font-weight:700;padding:1px 5px;">🛡️ Kiểm Duyệt Viên</span>`;
     } else if (roleLower === "contributor" || roleLower.includes("cộng tác")) {
-      roleBadge = `<span class="badge" style="background:rgba(245,158,11,0.2);color:#FBBF24;font-size:0.65rem;font-weight:700;padding:1px 5px;">Cộng Tác Viên</span>`;
+      roleBadge = `<span class="badge" style="background:rgba(245,158,11,0.2);color:#FBBF24;font-size:0.65rem;font-weight:700;padding:1px 5px;">🤝 Cộng Tác Viên</span>`;
     }
+    const deleteBtn = isAdmin ? `<button type="button" onclick="deleteChatMessage(${idx})" style="background:none;border:none;color:#EF4444;cursor:pointer;font-size:0.75rem;padding:0 4px;margin-left:4px;" title="Admin xóa tin nhắn này">🗑️</button>` : "";
     return `
     <div style="display: flex; flex-direction: column; align-items: ${c.isMe ? 'flex-end' : 'flex-start'}; margin-bottom: 6px;">
       <div style="display: flex; gap: 6px; align-items: center; font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 2px;">
         <strong>${escapeHtml(c.sender)}</strong>
         ${roleBadge}
         <span>${c.time}</span>
+        ${deleteBtn}
       </div>
       <div style="max-width: 82%; padding: 8px 12px; border-radius: var(--radius-md); font-size: 0.84rem; line-height: 1.45; background: ${c.isMe ? 'var(--purple-primary)' : 'var(--bg-surface)'}; color: ${c.isMe ? '#FFFFFF' : 'var(--text-primary)'}; border: 1px solid ${c.isMe ? 'transparent' : 'var(--border)'}; word-break: break-word;">
         ${escapeHtml(c.text)}
@@ -1781,6 +1784,16 @@ function renderChatMessages() {
   `;
   }).join("");
   box.scrollTop = box.scrollHeight;
+}
+
+function deleteChatMessage(idx) {
+  if (appState.currentUser?.role !== "admin") {
+    showToast("Chỉ Quản Trị Viên (Admin) có quyền cao nhất mới được xóa tin nhắn!", true);
+    return;
+  }
+  DEMO_CHATS.splice(idx, 1);
+  renderChatMessages();
+  showToast("Admin đã xóa tin nhắn trò chuyện.");
 }
 
 function sendChatMessage() {
@@ -2852,23 +2865,39 @@ function updateAuthHeaderUi() {
   const userRoleEl = document.getElementById("topUserRole");
   const userAvatarEl = document.getElementById("topUserAvatar");
   const greetingEl = document.getElementById("dashGreetingTitle");
+  const navAdminBtn = document.getElementById("navAdminBtn");
 
   if (appState.currentUser) {
     if (guestBox) guestBox.style.display = "none";
     if (userWidget) userWidget.style.display = "flex";
     const name = appState.currentUser.display_name || appState.currentUser.username || "Thành viên";
-    const role = appState.currentUser.role || "Member";
+    const roleKey = String(appState.currentUser.role || "member").toLowerCase();
+    let roleText = "Thành viên";
+    if (roleKey === "admin") {
+      roleText = "Quản Trị Viên (Admin) 👑";
+    } else if (roleKey === "moderator") {
+      roleText = "Kiểm Duyệt Viên (MOD) 🛡️";
+    } else if (roleKey === "contributor") {
+      roleText = "Cộng Tác Viên (CTV) 🤝";
+    }
+
     if (userNameEl) userNameEl.textContent = name;
-    if (userRoleEl) userRoleEl.textContent = role;
+    if (userRoleEl) userRoleEl.textContent = roleText;
     if (userAvatarEl) {
       const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "U";
       userAvatarEl.textContent = initials;
     }
-    if (greetingEl) greetingEl.textContent = `Good Morning, ${name}`;
+    if (greetingEl) greetingEl.textContent = `Xin chào, ${name} (${roleText})`;
+
+    // Sidebar: Chỉ Admin và Kiểm duyệt viên mới thấy mục Kiểm duyệt an toàn
+    if (navAdminBtn) {
+      navAdminBtn.style.display = (roleKey === "admin" || roleKey === "moderator") ? "flex" : "none";
+    }
   } else {
     if (guestBox) guestBox.style.display = "flex";
     if (userWidget) userWidget.style.display = "none";
-    if (greetingEl) greetingEl.textContent = "Good Morning, Jisan Ahmed";
+    if (greetingEl) greetingEl.textContent = "Chào mừng bạn đến với OpenHub Studio";
+    if (navAdminBtn) navAdminBtn.style.display = "none";
   }
 }
 
@@ -3985,6 +4014,10 @@ async function loadAdminOverview() {
 }
 
 async function moderateProjectAction(projectId, action) {
+  if (appState.currentUser?.role !== "admin") {
+    showToast("Chỉ Quản Trị Viên (Admin) có quyền cao nhất mới được thực thi kiểm duyệt dự án!", true);
+    return;
+  }
   await fetch(`/api/v1/admin/projects/${encodeURIComponent(projectId)}/moderate`, {
     method: "POST",
     headers: apiHeaders({ "X-Role": "admin" }),
@@ -5464,18 +5497,35 @@ function renderAdminKeyList() {
   }
   wrap.innerHTML = `
     <table class="data-table" style="width:100%;font-size:0.78rem;margin-top:6px;">
-      <thead><tr><th>Mã Key</th><th>Vai trò</th><th>Trạng thái</th></tr></thead>
+      <thead><tr><th>Mã Key</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác (Admin)</th></tr></thead>
       <tbody>
         ${keys.map((k) => `
           <tr>
             <td><code style="font-size:0.75rem;color:#38BDF8;">${escapeHtml(k.key)}</code></td>
             <td>${escapeHtml(k.roleName)}</td>
             <td>${k.usedBy ? `<span style="color:var(--text-secondary);">Đã dùng bởi @${escapeHtml(k.usedBy)}</span>` : `<span style="color:#10B981;font-weight:600;">Sẵn sàng</span>`}</td>
+            <td>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="revokeRoleKey('${escapeHtml(k.key)}')" style="padding:1px 6px;font-size:0.7rem;color:#EF4444;">
+                Thu hồi Key
+              </button>
+            </td>
           </tr>
         `).join("")}
       </tbody>
     </table>
   `;
+}
+
+function revokeRoleKey(keyStr) {
+  if (appState.currentUser?.role !== "admin") {
+    showToast("Chỉ Quản Trị Viên (Admin) có quyền thu hồi Key!", true);
+    return;
+  }
+  let keys = getStoredRoleKeys();
+  keys = keys.filter((k) => k.key !== keyStr);
+  saveStoredRoleKeys(keys);
+  renderAdminKeyList();
+  showToast(`Đã thu hồi Key: ${keyStr}`);
 }
 
 function submitActivationKey() {
