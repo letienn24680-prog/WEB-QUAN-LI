@@ -360,34 +360,39 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupVirtualKeyboardGuard();
   setupTouchSheetGesturePhysics();
 
-  // Phân biệt F5 (Tải lại trang) với Thoát/Mở mới trình duyệt (kể cả khi Chrome bật "Continue where you left off")
+  // Đồng bộ phiên đa tab trong cùng trình duyệt & phân biệt F5/Duplicate Tab với Khởi động lại trình duyệt
+  let hasBrowserCookie = false;
   try {
-    const navEntry = (typeof performance !== "undefined" && performance.getEntriesByType)
-      ? performance.getEntriesByType("navigation")[0]
-      : null;
-    const isReload = navEntry
-      ? navEntry.type === "reload"
-      : (typeof performance !== "undefined" && performance.navigation && performance.navigation.type === 1);
+    hasBrowserCookie = typeof document !== "undefined" && Boolean(document.cookie && document.cookie.includes("openhub_browser_session=active"));
+  } catch (e) {}
 
-    const saved = sessionStorage.getItem("openhub_user");
-    const sessionActive = sessionStorage.getItem("openhub_session_active");
+  const navEntry = (typeof performance !== "undefined" && performance.getEntriesByType)
+    ? performance.getEntriesByType("navigation")[0]
+    : null;
+  const isReload = navEntry
+    ? navEntry.type === "reload"
+    : (typeof performance !== "undefined" && performance.navigation && performance.navigation.type === 1);
 
-    // Chỉ duy trì phiên khi người dùng chủ động F5 tải lại trang trong cùng tab đang làm việc
-    // Nếu là mở mới trình duyệt, mở tab mới hoặc khôi phục tab sau khi đóng: bắt buộc đăng nhập lại
-    if (!isReload || !sessionActive || !saved) {
-      sessionStorage.removeItem("openhub_user");
-      sessionStorage.removeItem("openhub_token");
-      sessionStorage.removeItem("openhub_session_active");
-      appState.currentUser = null;
-    } else {
+  const saved = sessionStorage.getItem("openhub_user");
+  const sessionActive = sessionStorage.getItem("openhub_session_active");
+
+  // Giữ đăng nhập khi F5 hoặc Duplicate Tab trong cùng phiên trình duyệt đang mở
+  if ((isReload || hasBrowserCookie) && sessionActive && saved) {
+    try {
       appState.currentUser = JSON.parse(saved);
       if (appState.currentUser && appState.currentUser.username?.toLowerCase() === "admin") {
         appState.currentUser.role = "admin";
         sessionStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
       }
       sessionStorage.setItem("openhub_last_active", String(Date.now()));
+    } catch (e) {
+      appState.currentUser = null;
     }
-  } catch (e) {
+  } else {
+    // Thoát hẳn trình duyệt hoặc phiên không còn hợp lệ: hủy sạch để bắt buộc đăng nhập lại
+    sessionStorage.removeItem("openhub_user");
+    sessionStorage.removeItem("openhub_token");
+    sessionStorage.removeItem("openhub_session_active");
     appState.currentUser = null;
   }
   updateAuthHeaderUi();
@@ -425,6 +430,31 @@ window.addEventListener("DOMContentLoaded", async () => {
       "🔒 Phiên làm việc đã kết thúc sau khi đóng trình duyệt. Vui lòng đăng nhập lại để tiếp tục sử dụng hệ thống!",
       true
     );
+  }
+
+  // ĐỒNG BỘ PHIÊN ĐA TAB THỜI GIAN THỰC (BROADCAST CHANNEL)
+  if (typeof window !== "undefined" && typeof BroadcastChannel !== "undefined") {
+    try {
+      const authChannel = new BroadcastChannel("openhub_auth_channel");
+      authChannel.onmessage = (ev) => {
+        if (!ev || !ev.data) return;
+        if (ev.data.type === "REQUEST_SESSION_STATE" && appState.currentUser) {
+          authChannel.postMessage({
+            type: "RESPONSE_SESSION_STATE",
+            user: appState.currentUser,
+            token: sessionStorage.getItem("openhub_token")
+          });
+        } else if (ev.data.type === "RESPONSE_SESSION_STATE" && !appState.currentUser && ev.data.user) {
+          setAuthenticatedUser(ev.data.user, ev.data.token);
+          closeAuthModal();
+        } else if (ev.data.type === "LOGOUT_ALL_TABS" && appState.currentUser) {
+          logoutUser(false);
+        }
+      };
+      if (!appState.currentUser && hasBrowserCookie) {
+        authChannel.postMessage({ type: "REQUEST_SESSION_STATE" });
+      }
+    } catch (e) {}
   }
 });
 
@@ -3167,6 +3197,12 @@ function setAuthenticatedUser(user, token) {
     if (token) sessionStorage.setItem("openhub_token", token);
     sessionStorage.setItem("openhub_session_active", "1");
     sessionStorage.setItem("openhub_last_active", String(Date.now()));
+    // Session Cookie: tự động biến mất khi đóng toàn bộ cửa sổ/trình duyệt
+    document.cookie = "openhub_browser_session=active; path=/; SameSite=Lax";
+    if (typeof BroadcastChannel !== "undefined") {
+      const authChan = new BroadcastChannel("openhub_auth_channel");
+      authChan.postMessage({ type: "RESPONSE_SESSION_STATE", user, token });
+    }
   } catch (e) {
     /* ignore */
   }
@@ -3222,13 +3258,18 @@ function updateAuthHeaderUi() {
   }
 }
 
-function logoutUser() {
+function logoutUser(broadcast = true) {
   appState.currentUser = null;
   try {
     sessionStorage.removeItem("openhub_user");
     sessionStorage.removeItem("openhub_token");
     sessionStorage.removeItem("openhub_session_active");
     sessionStorage.removeItem("openhub_last_active");
+    document.cookie = "openhub_browser_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+    if (broadcast && typeof BroadcastChannel !== "undefined") {
+      const authChan = new BroadcastChannel("openhub_auth_channel");
+      authChan.postMessage({ type: "LOGOUT_ALL_TABS" });
+    }
   } catch (e) {
     /* ignore */
   }
