@@ -882,12 +882,14 @@
                 <hr style="border:none; border-top:1px solid var(--border); margin:18px 0 14px;">
 
                 <!-- KHỐI NHẬP KEY KÍCH HOẠT QUYỀN (CTV / KIỂM DUYỆT) -->
-                <h4 style="margin:0 0 8px; font-size:0.95rem; color:#F59E0B;">⚡ Kích Hoạt Quyền Bằng Key (CTV / Kiểm Duyệt)</h4>
-                <div style="display:flex; gap:8px;">
-                  <input type="text" id="activationKeyInput" class="form-input" placeholder="Nhập key: CTV-XXXX hoặc MOD-YYYY..." style="flex:1; font-family:var(--font-mono);">
-                  <button type="button" class="btn btn-primary btn-sm" onclick="submitActivationKey()">[ Kích hoạt ]</button>
+                <div id="activationKeyBlock">
+                  <h4 style="margin:0 0 8px; font-size:0.95rem; color:#F59E0B;">⚡ Kích Hoạt Quyền Bằng Key (CTV / Kiểm Duyệt)</h4>
+                  <div style="display:flex; gap:8px;">
+                    <input type="text" id="activationKeyInput" class="form-input" placeholder="Nhập key: CTV-XXXX hoặc MOD-YYYY..." style="flex:1; font-family:var(--font-mono);">
+                    <button type="button" id="activationKeySubmitBtn" class="btn btn-primary btn-sm" onclick="submitActivationKey()">[ Kích hoạt ]</button>
+                  </div>
+                  <small id="activationKeyNote" class="text-muted" style="font-size:0.74rem; display:block; margin-top:4px;">Nhập Key do Admin cung cấp để nâng cấp vai trò tài khoản.</small>
                 </div>
-                <small class="text-muted" style="font-size:0.74rem; display:block; margin-top:4px;">Nhập Key do Admin cung cấp để nâng cấp vai trò tài khoản.</small>
 
                 <!-- KHỐI CẤP KEY DÀNH RIÊNG CHO ADMIN -->
                 <div id="adminKeyGeneratorBox" style="display:none; margin-top:14px; padding:12px; background:rgba(139,92,246,0.1); border:1px dashed var(--purple-primary); border-radius:var(--radius-md);">
@@ -913,19 +915,16 @@
                   </p>
 
                   <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; align-items:center;">
-                    <div style="background:#FFFFFF; padding:10px; border-radius:8px; text-align:center; max-width:180px; margin:0 auto;">
-                      <svg width="150" height="150" viewBox="0 0 100 100" style="display:block; margin:0 auto;">
-                        <rect width="100" height="100" fill="#FFFFFF"/>
-                        <path d="M10 10h30v30h-30z M60 10h30v30h-30z M10 60h30v30h-30z M20 20h10v10h-10z M70 20h10v10h-10z M20 70h10v10h-10z M45 15h10v10h-10z M15 45h10v10h-10z M55 45h10v10h-10z M75 55h15v10h-15z M45 75h10v15h-10z M65 75h10v10h-10z M80 80h10v10h-10z" fill="#1E293B"/>
-                      </svg>
-                      <small style="color:#64748B; font-size:0.7rem; font-weight:600;">Google Authenticator</small>
+                    <div style="background:#FFFFFF; padding:10px; border-radius:8px; text-align:center; max-width:180px; margin:0 auto; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+                      <img id="profile2faQrImg" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&amp;data=otpauth%3A%2F%2Ftotp%2FNexaPanel%3Aadmin%3Fsecret%3DOPENHUB23AUTHKEY%26issuer%3DNexaPanel" alt="Mã QR Google Authenticator" width="160" height="160" style="display:block; margin:0 auto; border-radius:4px; max-width:100%; height:auto;" />
+                      <small style="color:#64748B; font-size:0.7rem; font-weight:600; display:block; margin-top:4px;">Google Authenticator / Authy</small>
                     </div>
 
                     <div>
                       <label class="filter-label">Mã khóa bí mật (Secret Key nhập tay):</label>
                       <div style="display:flex; gap:6px; align-items:center; margin-bottom:10px;">
-                        <code id="profile2faSecretKey" style="font-size:0.82rem; font-weight:700; color:#10B981; background:rgba(16,185,129,0.1); padding:4px 8px; border-radius:4px;">OPENHUB2026AUTHKEY</code>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyDirectString('OPENHUB2026AUTHKEY')" style="padding:2px 8px; font-size:0.72rem;">Copy</button>
+                        <code id="profile2faSecretKey" style="font-size:0.82rem; font-weight:700; color:#10B981; background:rgba(16,185,129,0.1); padding:4px 8px; border-radius:4px;">OPENHUB23AUTHKEY</code>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyDirectString('OPENHUB23AUTHKEY')" style="padding:2px 8px; font-size:0.72rem;">Copy</button>
                       </div>
 
                       <label class="filter-label" for="profile2faInput">Mã xác thực 6 số từ Google Authenticator (*):</label>
@@ -954,6 +953,12 @@
         <!-- MÀN HÌNH 5: HỒ SƠ NĂNG LỰC LẬP TRÌNH VIÊN (PORTFOLIO & HEATMAP) -->
         <!-- =============================================================== -->
         <section id="viewPortfolio" class="view-section" style="display: none;">
+          <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="goBackOrDashboard()" style="display: inline-flex; align-items: center; gap: 6px;">
+              ← Quay lại
+            </button>
+            <span style="font-size: 0.8rem; color: var(--text-secondary);">Hồ sơ năng lực &amp; Khách hàng tiêu biểu</span>
+          </div>
           <div id="portfolioContainer" class="wizard-card"></div>
         </section>
 
@@ -961,6 +966,11 @@
         <!-- MÀN HÌNH 6: TRÌNH THUẬT SĨ ĐĂNG TẢI 4 BƯỚC (DÀNH RIÊNG CHO ADMIN) -->
         <!-- =============================================================== -->
         <section id="viewUpload" class="view-section" style="display: none;">
+          <div style="margin-bottom: 12px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="goBackOrDashboard()" style="display: inline-flex; align-items: center; gap: 6px;">
+              ← Quay lại
+            </button>
+          </div>
           <!-- KHỐI CHẶN QUYỀN ĐĂNG TẢI NẾU CHƯA ĐĂNG NHẬP -->
           <div id="uploadAdminPermissionGate" class="signed-banner" style="display: none; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.35); color: #FCA5A5; margin-bottom: 1.5rem;">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
@@ -1102,6 +1112,9 @@
                 <p id="directUploadSubheading">Bấm chọn tệp <strong>.ZIP</strong> hoặc chọn cả <strong>Thư mục dự án</strong> từ máy tính để tải toàn bộ mã nguồn lên Web ngay lập tức.</p>
               </div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="importSampleGitHubRepoFromUI()">
+                  🔗 Đồng bộ từ GitHub Repo
+                </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAdvancedWizardSection()">
                   ⚙️ Chế độ Nâng cao / Test Kịch bản
                 </button>
@@ -1348,6 +1361,11 @@
         <!-- MÀN HÌNH 7: TRUNG TÂM KIỂM DUYỆT AN TOÀN & NHẬT KÝ BẤT BIẾN     -->
         <!-- =============================================================== -->
         <section id="viewAdmin" class="view-section" style="display: none;">
+          <div style="margin-bottom: 12px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="goBackOrDashboard()" style="display: inline-flex; align-items: center; gap: 6px;">
+              ← Quay lại
+            </button>
+          </div>
           <div class="wizard-card">
             <div class="wizard-header">
               <h2>Trung Tâm Kiểm Duyệt An Toàn, Auto-Quarantine & Nhật Ký Bất Biến (Audit Logs)</h2>
@@ -2117,6 +2135,31 @@
       </div>
 
       <div id="notificationsListContainer" style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto;"></div>
+    </div>
+  </div>
+
+  <!-- MODAL XÁC NHẬN HÀNH ĐỘNG IN-APP (THAY THẾ BROWSER CONFIRM) -->
+  <div id="appConfirmModal" class="modal-backdrop" style="display: none; z-index: 99999;" onclick="if(event.target===this)closeAppConfirmModal(false)">
+    <div class="modal-box" style="max-width: 440px; border: 1px solid rgba(139,92,246,0.35); box-shadow: 0 16px 48px rgba(0,0,0,0.85); background: var(--bg-surface);">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div id="appConfirmIcon" style="width: 38px; height: 38px; border-radius: 10px; background: rgba(239,68,68,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: #EF4444; flex-shrink: 0;">
+            ⚠️
+          </div>
+          <div>
+            <h3 id="appConfirmTitle" style="margin: 0; font-size: 1.05rem; color: #F8FAFC;">Xác Nhận Hành Động</h3>
+            <small class="text-muted" id="appConfirmSubtitle" style="font-size: 0.75rem;">Hệ thống xác thực bảo mật NexaPanel</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" onclick="closeAppConfirmModal(false)" aria-label="Đóng">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="appConfirmMessage" style="padding: 16px 4px; font-size: 0.9rem; line-height: 1.55; color: #E2E8F0; white-space: pre-line;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); padding-top: 12px;">
+        <button type="button" id="appConfirmCancelBtn" class="btn btn-secondary" onclick="closeAppConfirmModal(false)" style="min-width: 80px;">Hủy bỏ</button>
+        <button type="button" id="appConfirmOkBtn" class="btn btn-primary" onclick="closeAppConfirmModal(true)" style="min-width: 90px;">Đồng ý</button>
+      </div>
     </div>
   </div>
 
