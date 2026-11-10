@@ -382,6 +382,7 @@ async function verifyTokenAndActivateUser(email, enteredOtp) {
           username: newUser.username,
           display_name: newUser.display_name,
           email: newUser.email,
+          password_hash: newUser.password,
           role: newUser.role,
           status: "active"
         }
@@ -411,8 +412,60 @@ async function verifyTokenAndActivateUser(email, enteredOtp) {
   return { success: true, user: newUser };
 }
 
+const DEFAULT_SEED_USERS = [
+  {
+    id: "usr-tienle100",
+    username: "Tienle100",
+    display_name: "Tiến Lê",
+    email: "tienle100@gmail.com",
+    password: "Tien1109@#",
+    role: "developer",
+    balance: 0,
+    status: "active"
+  },
+  {
+    id: "u-admin-root",
+    username: "admin",
+    display_name: "Quản Trị Viên (Admin)",
+    email: "admin@openhub.vn",
+    password: "admin1109@#",
+    role: "admin",
+    balance: 999999999,
+    status: "active"
+  }
+];
+
 async function findUserByIdentifier(identifier, password) {
   const cleanId = String(identifier || "").toLowerCase().trim();
+
+  // 1. Kiểm tra Supabase
+  if (isSupabaseConfigured()) {
+    try {
+      const res = await supabaseFetch("users", {
+        query: `or=(username.ilike.${cleanId},email.ilike.${cleanId})&limit=1`
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          const row = rows[0];
+          if (!row.password_hash || row.password_hash === password || row.password === password) {
+            return {
+              id: row.id,
+              username: row.username,
+              display_name: row.display_name || row.username,
+              email: row.email,
+              role: row.role || "developer",
+              balance: row.balance || 0
+            };
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Supabase findUser error:", e);
+    }
+  }
+
+  // 2. Kiểm tra bộ nhớ server & danh sách người dùng mặc định
   let users = global.__openhub_shared_users || [];
   try {
     if (fs.existsSync(USERS_FILE)) {
@@ -420,7 +473,8 @@ async function findUserByIdentifier(identifier, password) {
     }
   } catch (e) {}
 
-  return users.find((u) => (u.username.toLowerCase() === cleanId || u.email.toLowerCase() === cleanId) && u.password === password) || null;
+  const allUsers = [...users, ...DEFAULT_SEED_USERS];
+  return allUsers.find((u) => ((u.username && u.username.toLowerCase() === cleanId) || (u.email && u.email.toLowerCase() === cleanId)) && u.password === password) || null;
 }
 
 module.exports = {

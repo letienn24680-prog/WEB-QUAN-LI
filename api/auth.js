@@ -195,6 +195,25 @@ module.exports = async (req, res) => {
       });
     }
 
+    // Tài khoản người dùng Tiến Lê
+    if (
+      (cleanId === "tienle100" || cleanId === "tienle100@gmail.com") &&
+      cleanPwd === "Tien1109@#"
+    ) {
+      return res.status(200).json({
+        success: true,
+        user: {
+          id: "usr-tienle100",
+          username: "Tienle100",
+          display_name: "Tiến Lê",
+          email: "tienle100@gmail.com",
+          role: "developer",
+          balance: 0
+        },
+        accessToken: "user-jwt-" + crypto.randomBytes(16).toString("hex")
+      });
+    }
+
     const user = await db.findUserByIdentifier(cleanId, cleanPwd);
     if (user) {
       return res.status(200).json({
