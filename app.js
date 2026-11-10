@@ -507,15 +507,26 @@ function updateStickyMobileDownloadBar() {
 }
 
 function navigateView(viewName, pushToHistory = true) {
-  // Chốt bảo mật: Khách vãng lai xem trang chủ Dashboard/Explore tự do, nhưng khi truy cập chức năng đăng tải hoặc quản trị yêu cầu tài khoản
-  if ((viewName === "upload" || viewName === "admin") && !appState.currentUser) {
-    const titles = { upload: "Đăng tải dự án mới", admin: "Kiểm duyệt an toàn" };
-    openAuthModal("register", () => navigateView(viewName), `Vui lòng đăng nhập để truy cập chức năng ${titles[viewName] || "này"}`);
+  // Chốt bảo mật: Đăng tải yêu cầu tài khoản thành viên, Kiểm duyệt an toàn chỉ dành cho Admin & MOD
+  if (viewName === "upload" && !appState.currentUser) {
+    openAuthModal("register", () => navigateView("upload"), "Vui lòng đăng nhập hoặc tạo tài khoản để đăng tải dự án");
     return;
   }
 
-  // PHÂN QUYỀN TRUNG TÂM KIỂM DUYỆT AN TOÀN: Chỉ tài khoản Admin và Kiểm Duyệt Viên (MOD) mới được truy cập
   if (viewName === "admin") {
+    if (!appState.currentUser) {
+      openAuthModal("login", () => {
+        const role = String(appState.currentUser?.role || "").toLowerCase();
+        if (role === "admin" || role === "moderator") {
+          navigateView("admin");
+        } else {
+          showToast("Tài khoản của bạn không có quyền truy cập trung tâm kiểm duyệt!", true);
+          navigateView("dashboard", false);
+        }
+      }, "Vui lòng đăng nhập tài khoản Quản trị viên hoặc Kiểm duyệt viên để tiếp tục");
+      navigateView("dashboard", false);
+      return;
+    }
     const roleKey = String(appState.currentUser?.role || "").toLowerCase();
     if (roleKey !== "admin" && roleKey !== "moderator") {
       showToast("Chỉ Quản Trị Viên (Admin) và Kiểm Duyệt Viên (MOD) mới có quyền truy cập trung tâm kiểm duyệt!", true);
@@ -626,6 +637,35 @@ function navigateView(viewName, pushToHistory = true) {
 window.addEventListener("popstate", (e) => {
   const targetView = (e.state && e.state.view) || (window.location.hash || "").replace(/^#/, "") || "dashboard";
   navigateView(targetView, false);
+});
+
+// Bắt sự kiện thay đổi Hash trực tiếp trên thanh địa chỉ URL (Bookmark / Gõ URL trực tiếp)
+window.addEventListener("hashchange", () => {
+  const targetView = (window.location.hash || "").replace(/^#/, "") || "dashboard";
+  navigateView(targetView, false);
+});
+
+// ĐỒNG BỘ ĐA TAB & ĐA CỬA SỔ (STORAGE EVENT): Xử lý tức thì khi đổi quyền hoặc đăng nhập/đăng xuất ở tab khác
+window.addEventListener("storage", (e) => {
+  if (e.key === "openhub_user" || e.key === "openhub_token") {
+    try {
+      const raw = localStorage.getItem("openhub_user");
+      appState.currentUser = raw ? JSON.parse(raw) : null;
+      if (appState.currentUser && appState.currentUser.username?.toLowerCase() === "admin") {
+        appState.currentUser.role = "admin";
+      }
+    } catch (err) {
+      appState.currentUser = null;
+    }
+    updateAuthHeaderUi();
+    if (appState.currentView === "admin") {
+      const roleKey = String(appState.currentUser?.role || "").toLowerCase();
+      if (roleKey !== "admin" && roleKey !== "moderator") {
+        showToast("Phiên làm việc đã thay đổi. Bạn không có quyền truy cập trung tâm kiểm duyệt!", true);
+        navigateView("dashboard", false);
+      }
+    }
+  }
 });
 
 function goBackOrDashboard() {
