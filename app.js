@@ -6,6 +6,50 @@
 // - Full Responsive Balance on PC (Multi-col) & Mobile (< 768px, Zero Overflow)
 // =============================================================================
 
+// BẢO VỆ TƯƠNG THÍCH MỌI TRÌNH DUYỆT & CHẾ ĐỘ CHẶN STORAGE (FALLBACK IN-MEMORY STORAGE)
+(function initSafeStorageShim() {
+  function checkSupport(type) {
+    try {
+      if (typeof window !== "undefined" && window[type]) {
+        const testKey = "__openhub_test__";
+        window[type].setItem(testKey, "1");
+        window[type].removeItem(testKey);
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function createMemoryStorage() {
+    const memory = new Map();
+    return {
+      getItem: (k) => (memory.has(k) ? memory.get(k) : null),
+      setItem: (k, v) => memory.set(k, String(v)),
+      removeItem: (k) => memory.delete(k),
+      clear: () => memory.clear()
+    };
+  }
+
+  if (typeof window !== "undefined") {
+    if (!checkSupport("localStorage")) {
+      const mock = createMemoryStorage();
+      try {
+        Object.defineProperty(window, "localStorage", { value: mock, configurable: true, writable: true });
+      } catch (e) {
+        try { window.localStorage = mock; } catch (err) {}
+      }
+    }
+    if (!checkSupport("sessionStorage")) {
+      const mock = createMemoryStorage();
+      try {
+        Object.defineProperty(window, "sessionStorage", { value: mock, configurable: true, writable: true });
+      } catch (e) {
+        try { window.sessionStorage = mock; } catch (err) {}
+      }
+    }
+  }
+})();
+
 const appState = {
   currentView: "dashboard",
   theme: "dark", // 'dark' (#0B0F19) | 'light' (#F3F4F6)
