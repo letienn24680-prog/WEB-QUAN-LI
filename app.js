@@ -31,14 +31,19 @@
   }
 
   if (typeof window !== "undefined") {
-    if (!checkSupport("localStorage")) {
-      const mock = createMemoryStorage();
-      try {
-        Object.defineProperty(window, "localStorage", { value: mock, configurable: true, writable: true });
-      } catch (e) {
-        try { window.localStorage = mock; } catch (err) {}
+    // Tự động quét dọn toàn bộ các khóa rác cũ từng lưu trong localStorage để không bao giờ bị dính cache
+    try {
+      if (window.localStorage) {
+        const legacyKeys = [];
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const k = window.localStorage.key(i);
+          if (k && (k.startsWith("openhub_") || k.includes("project"))) legacyKeys.push(k);
+        }
+        legacyKeys.forEach((k) => window.localStorage.removeItem(k));
       }
-    }
+    } catch (e) {}
+
+    // Đảm bảo sessionStorage luôn hoạt động hoàn hảo trên mọi môi trường (Safari Private, Webview...)
     if (!checkSupport("sessionStorage")) {
       const mock = createMemoryStorage();
       try {
@@ -227,7 +232,7 @@ const OFFLINE_PROJECTS = [
 
 function getDeletedProjectIds() {
   try {
-    const raw = localStorage.getItem("openhub_deleted_projects");
+    const raw = sessionStorage.getItem("openhub_deleted_projects");
     return raw ? JSON.parse(raw) : [];
   } catch (e) {
     return [];
@@ -246,7 +251,7 @@ function getMergedProjectsList() {
   const deleted = getDeletedProjectIds();
   let list = OFFLINE_PROJECTS.filter((p) => !deleted.includes(p.id) && !deleted.includes(p.slug));
   try {
-    const raw = localStorage.getItem("openhub_custom_projects");
+    const raw = sessionStorage.getItem("openhub_custom_projects");
     if (raw) {
       const custom = JSON.parse(raw);
       for (const c of custom) {
@@ -338,12 +343,12 @@ function getOfflineDashboardAnalytics(rangeDays = 7) {
 // Tự động khôi phục quyền Quản Trị Viên (Admin) tối cao ngay khi tải script
 (function autoHealAdminRole() {
   try {
-    const saved = localStorage.getItem("openhub_user");
+    const saved = sessionStorage.getItem("openhub_user");
     if (saved) {
       const u = JSON.parse(saved);
       if (u && u.username && u.username.toLowerCase() === "admin" && u.role !== "admin") {
         u.role = "admin";
-        localStorage.setItem("openhub_user", JSON.stringify(u));
+        sessionStorage.setItem("openhub_user", JSON.stringify(u));
       }
     }
   } catch (e) {}
@@ -357,13 +362,13 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // Khôi phục phiên làm việc đã lưu (nếu có)
   try {
-    const saved = localStorage.getItem("openhub_user");
+    const saved = sessionStorage.getItem("openhub_user");
     if (saved) {
       appState.currentUser = JSON.parse(saved);
       // BẢO VỆ TỐI CAO: Tài khoản admin luôn luôn là role "admin", tự động khôi phục nếu lỡ bị đổi thành moderator/contributor
       if (appState.currentUser && appState.currentUser.username?.toLowerCase() === "admin") {
         appState.currentUser.role = "admin";
-        localStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
+        sessionStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
       }
     }
   } catch (e) {
@@ -499,7 +504,7 @@ function setupKeyboardShortcuts() {
 function apiHeaders(extra = {}) {
   let token = null;
   try {
-    token = localStorage.getItem("openhub_token");
+    token = sessionStorage.getItem("openhub_token");
   } catch (e) {}
   const headers = {
     "Content-Type": "application/json",
@@ -703,7 +708,7 @@ window.addEventListener("hashchange", () => {
 window.addEventListener("storage", (e) => {
   if (e.key === "openhub_user" || e.key === "openhub_token") {
     try {
-      const raw = localStorage.getItem("openhub_user");
+      const raw = sessionStorage.getItem("openhub_user");
       appState.currentUser = raw ? JSON.parse(raw) : null;
       if (appState.currentUser && appState.currentUser.username?.toLowerCase() === "admin") {
         appState.currentUser.role = "admin";
@@ -1699,7 +1704,7 @@ const OFFLINE_FILES = {
 
 function getCustomProjectFileMap(slug) {
   try {
-    const raw = localStorage.getItem("openhub_custom_files_" + slug);
+    const raw = sessionStorage.getItem("openhub_custom_files_" + slug);
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   const list = getMergedProjectsList();
@@ -2674,7 +2679,7 @@ function isLocalFileProtocol() {
 
 function getLocalRegisteredUsers() {
   try {
-    const raw = localStorage.getItem("openhub_registered_users");
+    const raw = sessionStorage.getItem("openhub_registered_users");
     return raw ? JSON.parse(raw) : [];
   } catch (e) {
     return [];
@@ -2694,7 +2699,7 @@ function saveLocalRegisteredUser(user) {
     } else {
       list.push(user);
     }
-    localStorage.setItem("openhub_registered_users", JSON.stringify(list));
+    sessionStorage.setItem("openhub_registered_users", JSON.stringify(list));
   } catch (e) {}
 }
 
@@ -2912,7 +2917,7 @@ async function submitRegisterFromModal() {
         demoOtp: d?.verification?.demoOtpCode || "123456"
       };
 
-      // Lưu ngay vào cơ sở dữ liệu tài khoản LocalStorage để sau này đăng nhập lại được
+      // Lưu ngay vào cơ sở dữ liệu tài khoản SessionStorage để phục vụ phiên đăng nhập
       saveLocalRegisteredUser({
         id: "usr-" + Date.now(),
         username,
@@ -3124,8 +3129,8 @@ function setAuthenticatedUser(user, token) {
   }
   appState.currentUser = user;
   try {
-    localStorage.setItem("openhub_user", JSON.stringify(user));
-    if (token) localStorage.setItem("openhub_token", token);
+    sessionStorage.setItem("openhub_user", JSON.stringify(user));
+    if (token) sessionStorage.setItem("openhub_token", token);
   } catch (e) {
     /* ignore */
   }
@@ -3184,8 +3189,8 @@ function updateAuthHeaderUi() {
 function logoutUser() {
   appState.currentUser = null;
   try {
-    localStorage.removeItem("openhub_user");
-    localStorage.removeItem("openhub_token");
+    sessionStorage.removeItem("openhub_user");
+    sessionStorage.removeItem("openhub_token");
   } catch (e) {
     /* ignore */
   }
@@ -3647,11 +3652,11 @@ async function submitAndScanWizardProject() {
 
     let customList = [];
     try {
-      const raw = localStorage.getItem("openhub_custom_projects");
+      const raw = sessionStorage.getItem("openhub_custom_projects");
       if (raw) customList = JSON.parse(raw);
     } catch (e) {}
     customList.unshift(newProject);
-    localStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+    sessionStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
 
     created = { project: newProject };
     const preset = document.getElementById("upPresetSelect")?.value || "clean_with_junk";
@@ -3708,7 +3713,7 @@ let currentGitHubRepos = [];
 function getLinkedGitHubData(webUsername = null) {
   try {
     const user = webUsername || (appState.currentUser ? appState.currentUser.username : "guest");
-    const raw = localStorage.getItem(`openhub_github_link_${user}`);
+    const raw = sessionStorage.getItem(`openhub_github_link_${user}`);
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
     return null;
@@ -3718,14 +3723,14 @@ function getLinkedGitHubData(webUsername = null) {
 function saveLinkedGitHubData(data, webUsername = null) {
   try {
     const user = webUsername || (appState.currentUser ? appState.currentUser.username : "guest");
-    localStorage.setItem(`openhub_github_link_${user}`, JSON.stringify(data));
+    sessionStorage.setItem(`openhub_github_link_${user}`, JSON.stringify(data));
   } catch (e) {}
 }
 
 function removeLinkedGitHubData(webUsername = null) {
   try {
     const user = webUsername || (appState.currentUser ? appState.currentUser.username : "guest");
-    localStorage.removeItem(`openhub_github_link_${user}`);
+    sessionStorage.removeItem(`openhub_github_link_${user}`);
   } catch (e) {}
 }
 
@@ -3946,7 +3951,7 @@ function updateGitHubRateLimitBadge(headers) {
 
 function getGitHubReposCache(username) {
   try {
-    const raw = localStorage.getItem(`openhub_gh_cache_${username}`);
+    const raw = sessionStorage.getItem(`openhub_gh_cache_${username}`);
     if (!raw) return null;
     const data = JSON.parse(raw);
     if (Date.now() - (data.timestamp || 0) < 30 * 60 * 1000 && Array.isArray(data.repos)) {
@@ -3960,7 +3965,7 @@ function getGitHubReposCache(username) {
 
 function setGitHubReposCache(username, repos) {
   try {
-    localStorage.setItem(`openhub_gh_cache_${username}`, JSON.stringify({
+    sessionStorage.setItem(`openhub_gh_cache_${username}`, JSON.stringify({
       timestamp: Date.now(),
       repos: repos
     }));
@@ -4263,10 +4268,10 @@ async function importSelectedGitHubRepoByName(repoName, customOwner = null, cust
 
   try {
     let customList = [];
-    const raw = localStorage.getItem("openhub_custom_projects");
+    const raw = sessionStorage.getItem("openhub_custom_projects");
     if (raw) customList = JSON.parse(raw);
     customList.unshift(newProj);
-    localStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+    sessionStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
   } catch (err) {}
 
   // Gửi tới server backend nếu có
@@ -4618,7 +4623,7 @@ async function executeDirectFullProjectUpload() {
     fileMap[e.path] = e.content || "";
   });
   try {
-    localStorage.setItem("openhub_custom_files_" + slug, JSON.stringify(fileMap));
+    sessionStorage.setItem("openhub_custom_files_" + slug, JSON.stringify(fileMap));
   } catch (e) {}
 
   if (isAdmin) {
@@ -4658,11 +4663,11 @@ async function executeDirectFullProjectUpload() {
 
     let customList = [];
     try {
-      const raw = localStorage.getItem("openhub_custom_projects");
+      const raw = sessionStorage.getItem("openhub_custom_projects");
       if (raw) customList = JSON.parse(raw);
     } catch (e) {}
     customList.unshift(newProject);
-    localStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+    sessionStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
 
     updateCloudStorageUsage(totalBytes);
 
@@ -5444,10 +5449,10 @@ function getStoredWalletBalance(username) {
   const u = (username || appState.currentUser?.username || "").toLowerCase();
   if (!u) return 0;
   if (u === "admin" || appState.currentUser?.role === "admin") {
-    const raw = localStorage.getItem("openhub_wallet_admin");
+    const raw = sessionStorage.getItem("openhub_wallet_admin");
     return raw !== null ? Number(raw) : 999999999;
   }
-  const raw = localStorage.getItem("openhub_wallet_" + u);
+  const raw = sessionStorage.getItem("openhub_wallet_" + u);
   return raw !== null ? Number(raw) : 0;
 }
 
@@ -5455,7 +5460,7 @@ function setStoredWalletBalance(username, amount) {
   const u = (username || appState.currentUser?.username || "").toLowerCase();
   if (!u) return;
   const num = Math.max(0, Number(amount) || 0);
-  localStorage.setItem("openhub_wallet_" + u, String(num));
+  sessionStorage.setItem("openhub_wallet_" + u, String(num));
   updateWalletUI();
 }
 
@@ -5500,7 +5505,7 @@ function updateWalletUI() {
 
 function getStoredTopupRequests() {
   try {
-    const raw = localStorage.getItem("openhub_topup_requests");
+    const raw = sessionStorage.getItem("openhub_topup_requests");
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return [
@@ -5518,7 +5523,7 @@ function getStoredTopupRequests() {
 
 function saveStoredTopupRequests(list) {
   try {
-    localStorage.setItem("openhub_topup_requests", JSON.stringify(list));
+    sessionStorage.setItem("openhub_topup_requests", JSON.stringify(list));
   } catch (e) {}
   updateWalletUI();
 }
@@ -5912,7 +5917,7 @@ function getStoredPurchasedProjects(username) {
   const u = (username || appState.currentUser?.username || "").toLowerCase();
   if (!u) return [];
   try {
-    const raw = localStorage.getItem("openhub_purchased_" + u);
+    const raw = sessionStorage.getItem("openhub_purchased_" + u);
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return [];
@@ -5922,7 +5927,7 @@ function saveStoredPurchasedProjects(username, list) {
   const u = (username || appState.currentUser?.username || "").toLowerCase();
   if (!u) return;
   try {
-    localStorage.setItem("openhub_purchased_" + u, JSON.stringify(list));
+    sessionStorage.setItem("openhub_purchased_" + u, JSON.stringify(list));
   } catch (e) {}
   updateWalletUI();
 }
@@ -6146,7 +6151,7 @@ function saveEditProject() {
 
   let customList = [];
   try {
-    const raw = localStorage.getItem("openhub_custom_projects");
+    const raw = sessionStorage.getItem("openhub_custom_projects");
     if (raw) customList = JSON.parse(raw);
   } catch (e) {}
 
@@ -6156,7 +6161,7 @@ function saveEditProject() {
   } else {
     customList.push({ id, title, short_description: desc, price });
   }
-  localStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+  sessionStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
 
   closeEditProjectModal();
   showToast(`✅ Đã cập nhật dự án: ${title} (Giá: ${formatVND(price)})`);
@@ -6212,7 +6217,7 @@ function deleteProjectFromStorage(id, slug = null) {
 
   if (finalId && !deleted.includes(finalId)) deleted.push(finalId);
   if (finalSlug && !deleted.includes(finalSlug)) deleted.push(finalSlug);
-  localStorage.setItem("openhub_deleted_projects", JSON.stringify(deleted));
+  sessionStorage.setItem("openhub_deleted_projects", JSON.stringify(deleted));
 
   // Dọn sạch khỏi OFFLINE_PROJECTS
   for (let i = OFFLINE_PROJECTS.length - 1; i >= 0; i--) {
@@ -6238,12 +6243,12 @@ function deleteProjectFromStorage(id, slug = null) {
   }
 
   try {
-    const raw = localStorage.getItem("openhub_custom_projects");
+    const raw = sessionStorage.getItem("openhub_custom_projects");
     if (raw) {
       const custom = JSON.parse(raw).filter(
         (p) => (finalId ? p.id !== finalId : true) && (finalSlug ? p.slug !== finalSlug : true)
       );
-      localStorage.setItem("openhub_custom_projects", JSON.stringify(custom));
+      sessionStorage.setItem("openhub_custom_projects", JSON.stringify(custom));
     }
   } catch (e) {}
 }
@@ -6338,7 +6343,7 @@ function updateCloudStorageUsage() {
 // -----------------------------------------------------------------------------
 function getStoredNotifications() {
   try {
-    const raw = localStorage.getItem("openhub_notifications");
+    const raw = sessionStorage.getItem("openhub_notifications");
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return [
@@ -6355,7 +6360,7 @@ function getStoredNotifications() {
 
 function saveStoredNotifications(list) {
   try {
-    localStorage.setItem("openhub_notifications", JSON.stringify(list));
+    sessionStorage.setItem("openhub_notifications", JSON.stringify(list));
   } catch (e) {}
   updateNotificationBadge();
 }
@@ -6473,7 +6478,7 @@ function loadUserProfileAndAuthSettings() {
   if (u.username && u.username.toLowerCase() === "admin") {
     u.role = "admin";
     try {
-      localStorage.setItem("openhub_user", JSON.stringify(u));
+      sessionStorage.setItem("openhub_user", JSON.stringify(u));
     } catch (e) {}
     updateAuthHeaderUi();
   }
@@ -6582,7 +6587,7 @@ function saveUserProfileChanges() {
   appState.currentUser.bio = bio;
 
   try {
-    localStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
+    sessionStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
   } catch (e) {}
 
   updateAuthHeaderUi();
@@ -6611,7 +6616,7 @@ function submitChangePassword() {
   const u = users.find((it) => it.username?.toLowerCase() === appState.currentUser?.username?.toLowerCase());
   if (u) {
     u.password = newPwd;
-    localStorage.setItem("openhub_local_users", JSON.stringify(users));
+    sessionStorage.setItem("openhub_local_users", JSON.stringify(users));
   }
 
   document.getElementById("profileCurrentPassword").value = "";
@@ -6638,7 +6643,7 @@ async function toggleGoogle2FA() {
     if (confirmed) {
       u.two_factor_enabled = false;
       try {
-        localStorage.setItem("openhub_user", JSON.stringify(u));
+        sessionStorage.setItem("openhub_user", JSON.stringify(u));
       } catch (e) {}
       loadUserProfileAndAuthSettings();
       showToast("Đã tắt xác thực 2 lớp 2FA.");
@@ -6655,7 +6660,7 @@ async function toggleGoogle2FA() {
 
   u.two_factor_enabled = true;
   try {
-    localStorage.setItem("openhub_user", JSON.stringify(u));
+    sessionStorage.setItem("openhub_user", JSON.stringify(u));
   } catch (e) {}
 
   if (input) input.value = "";
@@ -6675,7 +6680,7 @@ async function toggleGoogle2FA() {
 // -----------------------------------------------------------------------------
 function getStoredRoleKeys() {
   try {
-    const raw = localStorage.getItem("openhub_role_keys");
+    const raw = sessionStorage.getItem("openhub_role_keys");
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return [];
@@ -6683,7 +6688,7 @@ function getStoredRoleKeys() {
 
 function saveStoredRoleKeys(keys) {
   try {
-    localStorage.setItem("openhub_role_keys", JSON.stringify(keys));
+    sessionStorage.setItem("openhub_role_keys", JSON.stringify(keys));
   } catch (e) {}
 }
 
@@ -6762,7 +6767,7 @@ function submitActivationKey() {
   ) {
     appState.currentUser.role = "admin";
     try {
-      localStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
+      sessionStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
     } catch (e) {}
     updateAuthHeaderUi();
     loadUserProfileAndAuthSettings();
@@ -6805,7 +6810,7 @@ function submitActivationKey() {
 
   appState.currentUser.role = newRole;
   try {
-    localStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
+    sessionStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
   } catch (e) {}
 
   updateAuthHeaderUi();
@@ -6826,7 +6831,7 @@ function submitActivationKey() {
 // -----------------------------------------------------------------------------
 function getStoredPendingProjects() {
   try {
-    const raw = localStorage.getItem("openhub_pending_projects");
+    const raw = sessionStorage.getItem("openhub_pending_projects");
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return [];
@@ -6834,7 +6839,7 @@ function getStoredPendingProjects() {
 
 function saveStoredPendingProjects(list) {
   try {
-    localStorage.setItem("openhub_pending_projects", JSON.stringify(list));
+    sessionStorage.setItem("openhub_pending_projects", JSON.stringify(list));
   } catch (e) {}
   updateCloudStorageUsage();
 }
@@ -7048,7 +7053,7 @@ function adminApprovePendingProject(id) {
 
   let customList = [];
   try {
-    const raw = localStorage.getItem("openhub_custom_projects");
+    const raw = sessionStorage.getItem("openhub_custom_projects");
     if (raw) customList = JSON.parse(raw);
   } catch (e) {}
   const idx = customList.findIndex((p) => p.id === id);
@@ -7067,7 +7072,7 @@ function adminApprovePendingProject(id) {
   };
   if (idx >= 0) customList[idx] = fullProjData;
   else customList.unshift(fullProjData);
-  localStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+  sessionStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
 
   addSystemNotification({
     title: "Dự án đã được duyệt xuất bản!",
