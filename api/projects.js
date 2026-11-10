@@ -317,6 +317,24 @@ module.exports = async (req, res) => {
 
       // TRƯỜNG HỢP B: POST /api/v1/projects hoặc /api/v1/projects/import-git
       const projectData = body.project || body;
+      const allProjects = await db.getAllProjects();
+      const existing = allProjects.find((p) => (projectData.id && p.id === projectData.id) || (projectData.slug && p.slug === projectData.slug));
+
+      if (existing) {
+        // Cập nhật dự án hiện có (giữ nguyên files, repo github, versions, chỉ cập nhật price, title, short_description)
+        const updated = {
+          ...existing,
+          ...projectData,
+          price: Number(projectData.price !== undefined ? projectData.price : existing.price) || 0,
+          updated_at: new Date().toISOString()
+        };
+        const saved = await db.saveProject(updated);
+        return res.status(200).json({
+          success: true,
+          project: saved
+        });
+      }
+
       const title = projectData.title || projectData.repo_url?.split("/").pop() || "Dự án mới";
 
       if (!projectData.title) projectData.title = title;

@@ -51,24 +51,34 @@ function recordGlobalDeletedSlug(slugOrId) {
   } catch (e) {}
 }
 
-// Mẫu dự án khởi tạo mặc định ban đầu nếu cơ sở dữ liệu chưa có
+// Danh sách mẫu dự án bị loại bỏ hoàn toàn khỏi hệ thống (không bao giờ hiển thị lại)
+const SAMPLE_EXCLUDED_SLUGS = [
+  "vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo",
+  "nextcommerce-pro-bo-khung-thuong-mai-dien-tu-da-gian-hang",
+  "secguard-cli-cong-cu-quet-ro-ri-khoa-bi-mat-phu-thuoc-loi-thoi",
+  "p-vietrag-1",
+  "p-nextcommerce-2",
+  "p-secguard-3"
+];
+
+// Mẫu dự án khởi tạo mặc định ban đầu nếu cơ sở dữ liệu chưa có (chỉ giữ lại dự án của người dùng)
 const DEFAULT_SEED_PROJECTS = [
   {
     id: "p-nop-bai-tap-0",
     slug: "nop-bai-tap",
-    title: "EduProof - Hệ Thống Nộp & Chấm Bài Tập Minh Chứng",
-    short_description: "Ứng dụng web chuyên biệt hỗ trợ học sinh nộp bài tập về nhà bằng hình ảnh minh chứng hoặc tài liệu số, giáo viên chấm điểm và vẽ bút đỏ trực tiếp.",
+    title: "nop-bai-tap",
+    short_description: "Mã nguồn dự án nop-bai-tap được đồng bộ trực tiếp từ kho lưu trữ GitHub của @letienn24680-prog.",
     category_id: 1,
     category_name: "Web Application",
     license_type: "MIT",
     github_repo_url: "https://github.com/letienn24680-prog/nop-bai-tap",
     demo_url: "https://quan-li.vercel.app/#explore",
-    tags: ["JavaScript", "HTML5", "CSS3", "Supabase", "Education", "github-sync"],
+    tags: ["github-sync", "JavaScript", "nop-bai-tap", "public-repo"],
     health_score: 98,
-    star_count: 36,
-    download_count: 120,
-    view_count: 450,
-    owner_username: "letienn24680-prog",
+    star_count: 5,
+    download_count: 1,
+    view_count: 12,
+    owner_username: "admin",
     version: "1.0.0",
     price: 0,
     size_bytes: 472000,
@@ -86,66 +96,6 @@ const DEFAULT_SEED_PROJECTS = [
       { name: "README.md", path: "README.md", size: 3156, type: "file" },
       { name: ".gitignore", path: ".gitignore", size: 176, type: "file" }
     ]
-  },
-  {
-    id: "p-vietrag-1",
-    slug: "vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo",
-    title: "VietRAG Studio - Trợ Lý AI Truy Xuất Tài Liệu Nội Bộ",
-    short_description: "Nền tảng hỏi đáp tài liệu PDF/DOCX tiếng Việt sử dụng Hybrid Search (BM25 + Vector) và trích dẫn nguồn chuẩn xác.",
-    category_id: 3,
-    category_name: "Trí tuệ nhân tạo (AI)",
-    license_type: "MIT",
-    demo_url: "https://vietrag-demo.openhub.vn",
-    tags: ["Python", "FastAPI", "TypeScript", "React", "Docker"],
-    health_score: 98,
-    star_count: 342,
-    download_count: 1420,
-    view_count: 5890,
-    owner_username: "minh_architect",
-    version: "1.1.0",
-    price: 0,
-    size_bytes: 45200000,
-    created_at: new Date().toISOString()
-  },
-  {
-    id: "p-nextcommerce-2",
-    slug: "nextcommerce-pro-bo-khung-thuong-mai-dien-tu-da-gian-hang",
-    title: "NextCommerce Pro - Bộ Khung Thương Mại Điện Tử Đa Gian Hàng",
-    short_description: "Full-stack Next.js App Router, tích hợp sẵn giỏ hàng thời gian thực, phân quyền người bán và cổng thanh toán VietQR.",
-    category_id: 1,
-    category_name: "Web Application",
-    license_type: "Apache-2.0",
-    demo_url: "https://nextcommerce-demo.openhub.vn",
-    tags: ["Next.js", "TypeScript", "React", "Node.js", "PostgreSQL"],
-    health_score: 96,
-    star_count: 215,
-    download_count: 980,
-    view_count: 3410,
-    owner_username: "minh_architect",
-    version: "2.0.0",
-    price: 50000,
-    size_bytes: 38100000,
-    created_at: new Date().toISOString()
-  },
-  {
-    id: "p-secguard-3",
-    slug: "secguard-cli-cong-cu-quet-ro-ri-khoa-bi-mat-phu-thuoc-loi-thoi",
-    title: "SecGuard CLI - Công Cụ Quét Rò Rỉ Khóa Bí Mật & Phụ Thuộc Lỗi Thời",
-    short_description: "Công cụ dòng lệnh siêu nhẹ giúp lập trình viên kiểm tra tự động khóa AWS, Private Key và lỗ hổng CVE trước khi git commit.",
-    category_id: 5,
-    category_name: "Bảo mật & DevSecOps",
-    license_type: "GPL-3.0",
-    demo_url: null,
-    tags: ["Rust", "Go", "Docker", "Security"],
-    health_score: 99,
-    star_count: 164,
-    download_count: 645,
-    view_count: 2150,
-    owner_username: "admin_secops",
-    version: "1.2.0",
-    price: 0,
-    size_bytes: 12400000,
-    created_at: new Date().toISOString()
   }
 ];
 
@@ -192,6 +142,9 @@ async function getAllProjects() {
     }
   }
 
+  // Lọc bỏ triệt để các mẫu dự án mặc định cũ khỏi Supabase
+  list = list.filter((p) => !SAMPLE_EXCLUDED_SLUGS.includes(p.id) && !SAMPLE_EXCLUDED_SLUGS.includes(p.slug));
+
   // Kết hợp cùng bộ nhớ đệm dùng chung trên môi trường Server
   let cached = [];
   try {
@@ -206,22 +159,37 @@ async function getAllProjects() {
   if (Array.isArray(global.__openhub_shared_projects)) {
     cached = [...cached, ...global.__openhub_shared_projects];
   }
+  cached = cached.filter((p) => !SAMPLE_EXCLUDED_SLUGS.includes(p.id) && !SAMPLE_EXCLUDED_SLUGS.includes(p.slug));
 
   // Hợp nhất: Dự án từ Supabase + Dự án từ bộ nhớ + Mẫu mặc định khởi tạo (trừ những cái đã bị xóa)
   const merged = [...list];
-  for (const item of [...cached, ...DEFAULT_SEED_PROJECTS]) {
+  for (const item of cached) {
     if (!item || !item.slug) continue;
     if (deletedSlugs.includes(item.id) || deletedSlugs.includes(item.slug)) continue;
+    if (SAMPLE_EXCLUDED_SLUGS.includes(item.id) || SAMPLE_EXCLUDED_SLUGS.includes(item.slug)) continue;
     const existing = merged.find((p) => p.slug === item.slug || (p.id && item.id && p.id === item.id));
     if (!existing) {
       merged.push(item);
     } else {
+      if (item.price !== undefined && item.price !== null) existing.price = Number(item.price);
+      if (item.title) existing.title = item.title;
+      if (item.short_description) existing.short_description = item.short_description;
       if ((!existing.files || existing.files.length === 0) && item.files) existing.files = item.files;
       if (!existing.github_repo_url && item.github_repo_url) existing.github_repo_url = item.github_repo_url;
     }
   }
 
-  return merged.filter((p) => !p.deleted_at && !deletedSlugs.includes(p.id) && !deletedSlugs.includes(p.slug));
+  for (const item of DEFAULT_SEED_PROJECTS) {
+    if (!item || !item.slug) continue;
+    if (deletedSlugs.includes(item.id) || deletedSlugs.includes(item.slug)) continue;
+    if (SAMPLE_EXCLUDED_SLUGS.includes(item.id) || SAMPLE_EXCLUDED_SLUGS.includes(item.slug)) continue;
+    const existing = merged.find((p) => p.slug === item.slug || (p.id && item.id && p.id === item.id));
+    if (!existing) {
+      merged.push(item);
+    }
+  }
+
+  return merged.filter((p) => !p.deleted_at && !deletedSlugs.includes(p.id) && !deletedSlugs.includes(p.slug) && !SAMPLE_EXCLUDED_SLUGS.includes(p.id) && !SAMPLE_EXCLUDED_SLUGS.includes(p.slug));
 }
 
 async function saveProject(project) {

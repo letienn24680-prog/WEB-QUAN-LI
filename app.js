@@ -115,118 +115,61 @@ const FALLBACK_CATEGORIES = [
 
 const FALLBACK_LICENSES = ["MIT", "Apache-2.0", "GPL-3.0", "BSD-3-Clause", "AGPL-3.0"];
 
+// Danh sách mẫu dự án bị loại bỏ hoàn toàn khỏi hệ thống (không bao giờ hiển thị lại)
+const SAMPLE_EXCLUDED_SLUGS = [
+  "vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo",
+  "nextcommerce-pro-bo-khung-thuong-mai-dien-tu-da-gian-hang",
+  "secguard-cli-cong-cu-quet-ro-ri-khoa-bi-mat-phu-thuoc-loi-thoi",
+  "p-vietrag-1",
+  "p-nextcommerce-2",
+  "p-secguard-3"
+];
+
 const OFFLINE_PROJECTS = [
   {
-    id: "p-vietrag-1",
-    slug: "vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo",
-    title: "VietRAG Studio - Trợ Lý AI Truy Xuất Tài Liệu Nội Bộ",
-    short_description: "Nền tảng hỏi đáp tài liệu PDF/DOCX tiếng Việt sử dụng Hybrid Search (BM25 + Vector) và trích dẫn nguồn chuẩn xác.",
-    category_id: 3,
-    category_name: "Trí tuệ nhân tạo (AI)",
+    id: "p-nop-bai-tap-0",
+    slug: "nop-bai-tap",
+    title: "nop-bai-tap",
+    short_description: "Mã nguồn dự án nop-bai-tap được đồng bộ trực tiếp từ kho lưu trữ GitHub của @letienn24680-prog.",
+    category_id: 1,
+    category_name: "Web Application",
     license_type: "MIT",
-    demo_url: "https://vietrag-demo.openhub.vn",
-    tags: ["Python", "FastAPI", "TypeScript", "React", "Docker"],
+    github_repo_url: "https://github.com/letienn24680-prog/nop-bai-tap",
+    demo_url: "https://quan-li.vercel.app/#explore",
+    tags: ["github-sync", "JavaScript", "nop-bai-tap", "public-repo"],
     health_score: 98,
-    star_count: 342,
-    download_count: 1420,
-    view_count: 5890,
-    owner_username: "minh_architect",
-    version: "1.1.0",
+    star_count: 5,
+    download_count: 1,
+    view_count: 12,
+    owner_username: "admin",
+    version: "1.0.0",
     price: 0,
-    size_bytes: 45200000,
+    size_bytes: 472000,
     sha256_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    quick_start_guide: "# Yêu cầu môi trường\n- Node.js >= 20.x & Python >= 3.11\n- PostgreSQL 16 + pgvector\n\n# Cài đặt & chạy nhanh\n```bash\ncp .env.example .env\ndocker compose up -d\npython -m uvicorn src.main:app --reload --port 8000\n```",
+    quick_start_guide: "1. Clone kho lưu trữ từ GitHub:\n```bash\ngit clone https://github.com/letienn24680-prog/nop-bai-tap.git\ncd nop-bai-tap\n```\n2. Mở tệp `index.html` trực tiếp trên trình duyệt hoặc chạy máy chủ cục bộ.",
     latest_version: {
-      version_number: "1.1.0",
-      changelog: "Cập nhật v1.1.0: Bổ sung Reranker đa ngôn ngữ và bộ lọc phòng ban.",
-      size_bytes: 45200000,
+      version_number: "1.0.0",
+      changelog: "Đồng bộ mã nguồn trực tiếp từ GitHub repository.",
+      size_bytes: 472000,
       sha256_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     versions: [
-      { version_number: "1.1.0", changelog: "Cập nhật v1.1.0: Reranker đa ngôn ngữ" },
-      { version_number: "1.0.0", changelog: "Khởi tạo v1.0.0: Bóc tách PDF cơ bản" }
+      { version_number: "1.0.0", changelog: "Phiên bản v1.0.0 từ GitHub" }
     ],
     files: [
-      { path: "README.md", size: 1024, type: "file" },
-      { path: ".env.example", size: 128, type: "file" },
-      { path: "requirements.txt", size: 256, type: "file" },
-      { path: "src/main.py", size: 2048, type: "file" },
-      { path: "src/retriever.py", size: 4096, type: "file" }
+      { name: "index.html", path: "index.html", size: 77118, type: "file" },
+      { name: "app.css", path: "app.css", size: 55006, type: "file" },
+      { name: "app.js", path: "app.js", size: 289234, type: "file" },
+      { name: "galaxy-bg.jpg", path: "galaxy-bg.jpg", size: 32219, type: "file" },
+      { name: "schema.sql", path: "schema.sql", size: 17153, type: "file" },
+      { name: "start.bat", path: "start.bat", size: 372, type: "file" },
+      { name: "supabase-config.js", path: "supabase-config.js", size: 922, type: "file" },
+      { name: "test_system.js", path: "test_system.js", size: 124972, type: "file" },
+      { name: "api/send-email.js", path: "api/send-email.js", size: 819, type: "file" },
+      { name: "README.md", path: "README.md", size: 3156, type: "file" },
+      { name: ".gitignore", path: ".gitignore", size: 176, type: "file" }
     ],
-    env_template: "PORT=8000\nVECTOR_DB_HOST=localhost\nEMBEDDING_MODEL=bge-m3\nENABLE_RERANKER=true\n"
-  },
-  {
-    id: "p-nextcommerce-2",
-    slug: "nextcommerce-pro-bo-khung-thuong-mai-dien-tu-da-gian-hang",
-    title: "NextCommerce Pro - Bộ Khung Thương Mại Điện Tử Đa Gian Hàng",
-    short_description: "Full-stack Next.js App Router, tích hợp sẵn giỏ hàng thời gian thực, phân quyền người bán và cổng thanh toán VietQR.",
-    category_id: 1,
-    category_name: "Web Application",
-    license_type: "Apache-2.0",
-    demo_url: "https://nextcommerce-demo.openhub.vn",
-    tags: ["Next.js", "TypeScript", "React", "Node.js", "PostgreSQL"],
-    health_score: 96,
-    star_count: 215,
-    download_count: 980,
-    view_count: 3410,
-    owner_username: "minh_architect",
-    version: "2.0.0",
-    price: 50000,
-    size_bytes: 38100000,
-    sha256_hash: "a5892c1798f01c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    quick_start_guide: "# Cài đặt nhanh NextCommerce Pro\n```bash\nnpm install\ncp .env.example .env.local\nnpm run db:migrate\nnpm run dev\n```",
-    latest_version: {
-      version_number: "2.0.0",
-      changelog: "Phát hành v2.0.0: Hỗ trợ mã VietQR động & kho khu vực.",
-      size_bytes: 38100000,
-      sha256_hash: "a5892c1798f01c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    versions: [
-      { version_number: "2.0.0", changelog: "Phát hành v2.0.0" }
-    ],
-    files: [
-      { path: "README.md", size: 890, type: "file" },
-      { path: "package.json", size: 512, type: "file" },
-      { path: "src/lib/vietqr.ts", size: 2400, type: "file" },
-      { path: ".env.example", size: 140, type: "file" }
-    ],
-    env_template: "DATABASE_URL=postgresql://postgres:password@localhost:5432/nextcommerce\nNEXT_PUBLIC_APP_URL=http://localhost:3000\nVIETQR_BANK_BIN=970422\n"
-  },
-  {
-    id: "p-secguard-3",
-    slug: "secguard-cli-cong-cu-quet-ro-ri-khoa-bi-mat-phu-thuoc-loi-thoi",
-    title: "SecGuard CLI - Công Cụ Quét Rò Rỉ Khóa Bí Mật & Phụ Thuộc Lỗi Thời",
-    short_description: "Công cụ dòng lệnh siêu nhẹ giúp lập trình viên kiểm tra tự động khóa AWS, Private Key và lỗ hổng CVE trước khi git commit.",
-    category_id: 5,
-    category_name: "Bảo mật & DevSecOps",
-    license_type: "GPL-3.0",
-    demo_url: null,
-    tags: ["Rust", "Go", "Docker", "Security"],
-    health_score: 99,
-    star_count: 164,
-    download_count: 645,
-    view_count: 2150,
-    owner_username: "admin_secops",
-    version: "1.2.0",
-    price: 0,
-    size_bytes: 12400000,
-    sha256_hash: "b7291a1498fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    quick_start_guide: "# Chạy trực tiếp qua Binary hoặc Cargo\n```bash\ncargo build --release\n./target/release/secguard scan ./my-project\n```",
-    latest_version: {
-      version_number: "1.2.0",
-      changelog: "Bổ sung quét kết nối DB & báo cáo SARIF.",
-      size_bytes: 12400000,
-      sha256_hash: "b7291a1498fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    versions: [
-      { version_number: "1.2.0", changelog: "v1.2.0: Báo cáo SARIF" }
-    ],
-    files: [
-      { path: "README.md", size: 640, type: "file" },
-      { path: "Cargo.toml", size: 320, type: "file" },
-      { path: "src/scanner.rs", size: 3100, type: "file" }
-    ],
-    env_template: "# Không yêu cầu biến môi trường\n"
+    env_template: "# Cấu hình môi trường nop-bai-tap\n"
   }
 ];
 
@@ -242,8 +185,8 @@ function getDeletedProjectIds() {
 function isProjectDeleted(p) {
   if (!p) return true;
   const deleted = getDeletedProjectIds();
-  if (p.id && deleted.includes(p.id)) return true;
-  if (p.slug && deleted.includes(p.slug)) return true;
+  if (p.id && (deleted.includes(p.id) || SAMPLE_EXCLUDED_SLUGS.includes(p.id))) return true;
+  if (p.slug && (deleted.includes(p.slug) || SAMPLE_EXCLUDED_SLUGS.includes(p.slug))) return true;
   return false;
 }
 
@@ -252,13 +195,13 @@ function getMergedProjectsList() {
   const baseList = (Array.isArray(appState.projects) && appState.projects.length > 0)
     ? appState.projects
     : OFFLINE_PROJECTS;
-  let list = baseList.filter((p) => !deleted.includes(p.id) && !deleted.includes(p.slug));
+  let list = baseList.filter((p) => !deleted.includes(p.id) && !deleted.includes(p.slug) && !SAMPLE_EXCLUDED_SLUGS.includes(p.id) && !SAMPLE_EXCLUDED_SLUGS.includes(p.slug));
   try {
     const raw = sessionStorage.getItem("openhub_custom_projects");
     if (raw) {
       const custom = JSON.parse(raw);
       for (const c of custom) {
-        if (deleted.includes(c.id) || deleted.includes(c.slug)) continue;
+        if (deleted.includes(c.id) || deleted.includes(c.slug) || SAMPLE_EXCLUDED_SLUGS.includes(c.id) || SAMPLE_EXCLUDED_SLUGS.includes(c.slug)) continue;
         const idx = list.findIndex((p) => p.id === c.id || p.slug === c.slug);
         if (idx >= 0) {
           list[idx] = { ...list[idx], ...c };
@@ -268,7 +211,7 @@ function getMergedProjectsList() {
       }
     }
   } catch (e) {}
-  return list;
+  return list.filter((p) => !SAMPLE_EXCLUDED_SLUGS.includes(p.id) && !SAMPLE_EXCLUDED_SLUGS.includes(p.slug));
 }
 
 function getProjectByIdOrSlug(id, slug) {
@@ -977,7 +920,8 @@ async function triggerExploreSearch() {
   }
 
   sk.style.display = "none";
-  const items = data.items || [];
+  let items = (data.items || []).filter((p) => !SAMPLE_EXCLUDED_SLUGS.includes(p.id) && !SAMPLE_EXCLUDED_SLUGS.includes(p.slug));
+  appState.projects = items;
   const cacheBadge = document.getElementById("exploreCacheBadge");
   if (cacheBadge) cacheBadge.textContent = "Cache: HIT";
 
@@ -6602,12 +6546,12 @@ function handleEditProjectFreeToggle(isFree) {
   const priceEl = document.getElementById("editProjectPrice");
   if (isFree) {
     priceEl.value = "0";
-  } else if (priceEl.value === "0") {
-    priceEl.value = "50000";
+  } else if (Number(priceEl.value) === 0 || !priceEl.value) {
+    priceEl.value = "20000";
   }
 }
 
-function saveEditProject() {
+async function saveEditProject() {
   if (appState.currentUser?.role !== "admin") {
     showToast("Chỉ Quản Trị Viên (Admin) mới có quyền lưu chỉnh sửa!", true);
     return;
@@ -6615,42 +6559,80 @@ function saveEditProject() {
   const id = document.getElementById("editProjectId").value;
   const title = document.getElementById("editProjectTitle").value.trim();
   const desc = document.getElementById("editProjectDesc").value.trim();
-  const isFree = document.getElementById("editProjectIsFree").checked;
-  const price = isFree ? 0 : Number(document.getElementById("editProjectPrice").value) || 0;
+  const priceInput = Number(document.getElementById("editProjectPrice")?.value) || 0;
+  const isFreeChecked = Boolean(document.getElementById("editProjectIsFree")?.checked);
+
+  // Nếu người dùng nhập số tiền > 0, ưu tiên số tiền đó và coi như không miễn phí
+  const price = priceInput > 0 ? priceInput : 0;
+  const isFree = price === 0;
 
   if (!title) {
     showToast("Tên dự án không được để trống", true);
     return;
   }
 
-  const proj = OFFLINE_PROJECTS.find((p) => p.id === id);
+  // Cập nhật bộ nhớ cục bộ OFFLINE_PROJECTS
+  const proj = OFFLINE_PROJECTS.find((p) => p.id === id || p.slug === id);
   if (proj) {
     proj.title = title;
     proj.short_description = desc;
     proj.price = price;
+    proj.is_free = isFree;
   }
 
+  // Cập nhật appState.projects đang hiển thị trên giao diện
+  if (Array.isArray(appState.projects)) {
+    const pIdx = appState.projects.findIndex((p) => p.id === id || p.slug === id);
+    if (pIdx >= 0) {
+      appState.projects[pIdx].title = title;
+      appState.projects[pIdx].short_description = desc;
+      appState.projects[pIdx].price = price;
+      appState.projects[pIdx].is_free = isFree;
+    }
+  }
+
+  // Cập nhật sessionStorage
   let customList = [];
   try {
     const raw = sessionStorage.getItem("openhub_custom_projects");
     if (raw) customList = JSON.parse(raw);
   } catch (e) {}
 
-  const cIdx = customList.findIndex((p) => p.id === id);
+  const cIdx = customList.findIndex((p) => p.id === id || p.slug === id);
   if (cIdx >= 0) {
-    customList[cIdx] = { ...customList[cIdx], title, short_description: desc, price };
+    customList[cIdx] = { ...customList[cIdx], title, short_description: desc, price, is_free: isFree };
   } else {
-    customList.push({ id, title, short_description: desc, price });
+    customList.push({ id, title, short_description: desc, price, is_free: isFree });
   }
   sessionStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
 
-  closeEditProjectModal();
-  showToast(`✅ Đã cập nhật dự án: ${title} (Giá: ${formatVND(price)})`);
+  // Gửi cập nhật trực tiếp lên API máy chủ để lưu vào CSDL dùng chung
+  try {
+    const targetSlug = appState.currentProject?.slug || (proj ? proj.slug : id);
+    await fetch("/api/v1/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id,
+        slug: targetSlug,
+        title,
+        short_description: desc,
+        price,
+        is_free: isFree
+      })
+    });
+  } catch (err) {
+    console.warn("Lỗi đồng bộ lên máy chủ:", err);
+  }
 
-  if (appState.currentProject && appState.currentProject.id === id) {
+  closeEditProjectModal();
+  showToast(`✅ Đã cập nhật dự án: ${title} (Giá: ${isFree ? "Miễn phí (Free)" : formatVND(price)})`);
+
+  if (appState.currentProject && (appState.currentProject.id === id || appState.currentProject.slug === id)) {
     appState.currentProject.title = title;
     appState.currentProject.short_description = desc;
     appState.currentProject.price = price;
+    appState.currentProject.is_free = isFree;
     openProjectDetail(appState.currentProject.slug);
   } else {
     triggerExploreSearch();

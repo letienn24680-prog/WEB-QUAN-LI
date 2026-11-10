@@ -2117,8 +2117,9 @@
         <div class="form-group" style="padding: 12px; background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.3); border-radius: var(--radius-md);">
           <label class="filter-label" for="editProjectPrice">Định giá dự án (VNĐ):</label>
           <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-            <input type="number" id="editProjectPrice" class="form-input" min="0" step="10000" placeholder="0 = Miễn phí (Free)" style="flex: 1;">
+            <input type="number" id="editProjectPrice" class="form-input" min="0" step="1000" placeholder="0 = Miễn phí (Free)" style="flex: 1;" oninput="const val = Number(this.value)||0; document.getElementById('editProjectIsFree').checked = (val === 0);">
             <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editProjectPrice').value='0'; document.getElementById('editProjectIsFree').checked=true;">0 đ</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editProjectPrice').value='20000'; document.getElementById('editProjectIsFree').checked=false;">20k</button>
             <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editProjectPrice').value='50000'; document.getElementById('editProjectIsFree').checked=false;">50k</button>
             <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editProjectPrice').value='100000'; document.getElementById('editProjectIsFree').checked=false;">100k</button>
           </div>
