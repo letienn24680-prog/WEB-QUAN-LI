@@ -2311,25 +2311,73 @@ async function previewFileInViewer(filePath) {
   renderTreeNodesUI();
   renderMobileSheetTreeNodes(document.getElementById("mobileSheetTreeSearch")?.value || "");
 
-  const slug = appState.currentProject.slug;
-  const ver = appState.selectedVersion;
+  const curProj = appState.currentProject || {};
+  const slug = curProj.slug || "";
+  const ver = appState.selectedVersion || "1.0.0";
   let f = null;
   try {
     const res = await fetch(
       `/api/v1/projects/${encodeURIComponent(slug)}/versions/${encodeURIComponent(ver)}/file?path=${encodeURIComponent(filePath)}`
     );
-    if (res.ok) f = await res.json();
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.content !== undefined && data.preview_available !== undefined) {
+        f = data;
+      }
+    }
   } catch (e) {}
+
+  // Fallback 1: Tải trực tiếp từ GitHub Raw nếu dự án liên kết kho GitHub
+  const ghUrl = curProj.github_repo_url || (slug.includes("nop-bai-tap") || slug.includes("nop-hai-tap") ? "https://github.com/letienn24680-prog/nop-bai-tap" : null);
+  if ((!f || !f.content) && ghUrl) {
+    const ghMatch = ghUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    if (ghMatch) {
+      const [_, ghOwner, rawRepo] = ghMatch;
+      const ghRepo = rawRepo.replace(/\.git$/, "");
+      try {
+        const rawRes = await fetch(`https://raw.githubusercontent.com/${ghOwner}/${ghRepo}/main/${filePath}`);
+        if (rawRes.ok) {
+          const text = await rawRes.text();
+          f = {
+            file_name: filePath.split("/").pop(),
+            relative_path: filePath,
+            size_bytes: text.length,
+            line_count: text.split(/\r?\n/).length,
+            preview_available: true,
+            content: text
+          };
+        } else {
+          const rawMaster = await fetch(`https://raw.githubusercontent.com/${ghOwner}/${ghRepo}/master/${filePath}`);
+          if (rawMaster.ok) {
+            const text = await rawMaster.text();
+            f = {
+              file_name: filePath.split("/").pop(),
+              relative_path: filePath,
+              size_bytes: text.length,
+              line_count: text.split(/\r?\n/).length,
+              preview_available: true,
+              content: text
+            };
+          }
+        }
+      } catch (err) {}
+    }
+  }
+
   if (!f) {
     f = getOfflineFileContent(slug, ver, filePath);
   }
+
+  const content = f.content || "";
+  const lines = content ? content.split(/\r?\n/) : [];
+  const lineCount = f.line_count || (content ? lines.length : 0);
 
   document.getElementById("codePreviewFileName").textContent = formatMiddleEllipsis(
     f.relative_path || filePath,
     appState.viewport.isMobile,
     30
   );
-  document.getElementById("codePreviewMeta").textContent = ` (${formatBytes(f.size_bytes)} · ${f.line_count || 0} dòng)`;
+  document.getElementById("codePreviewMeta").textContent = ` (${formatBytes(f.size_bytes || content.length)} · ${lineCount} dòng)`;
   document.getElementById("downloadSingleFileBtn").style.display = "inline-flex";
 
   const notice = document.getElementById("codePreviewNotice");
@@ -2341,12 +2389,11 @@ async function previewFileInViewer(filePath) {
   }
 
   const bodyEl = document.getElementById("codePreviewBody");
-  if (!f.preview_available) {
-    bodyEl.innerHTML = `<div style="padding:14px;">${escapeHtml(f.notice)}</div>`;
+  if (!content) {
+    bodyEl.innerHTML = `<div style="padding:14px;color:#94a3b8;">${escapeHtml(f.notice || "Không có nội dung hiển thị cho tệp này hoặc tệp ở định dạng nhị phân.")}</div>`;
     return;
   }
 
-  const lines = String(f.content || "").split(/\r?\n/);
   bodyEl.innerHTML = lines
     .map(
       (line, idx) =>
@@ -2414,6 +2461,27 @@ async function handleOneClickDownload() {
 
 async function handleSingleFileDownload() {
   if (!appState.selectedFilePath) return;
+  const filePath = appState.selectedFilePath;
+  const fileName = filePath.split("/").pop();
+
+  const codeEl = document.getElementById("codePreviewBody");
+  if (codeEl) {
+    const lines = Array.from(codeEl.querySelectorAll(".code-line-text")).map((el) => el.textContent);
+    if (lines.length > 0) {
+      const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      showToast(`✅ Đã tải tệp ${fileName}`);
+      return;
+    }
+  }
+
   await requestProjectDownload({ download_type: "single_file", file_path: appState.selectedFilePath });
 }
 
@@ -4482,29 +4550,54 @@ async function importSelectedGitHubRepoByName(repoName, customOwner = null, cust
     }
   } catch (err) {}
 
-  // 2. Tải danh sách tệp mã nguồn từ kho GitHub để nén vào gói tải Web
+  // 2. Tải toàn bộ danh sách tệp mã nguồn từ kho GitHub (hỗ trợ cả thư mục lồng nhau)
   let projFiles = [
     { name: "README.md", size: readmeContent.length, path: "README.md", content: readmeContent }
   ];
+  const branch = repo.default_branch || "main";
   try {
-    const contentsRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/contents`, {
+    const treeRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/git/trees/${encodeURIComponent(branch)}?recursive=1`, {
       headers: { Accept: "application/vnd.github.v3+json", ...(linked?.token ? { Authorization: `Bearer ${linked.token}` } : {}) }
     });
-    if (contentsRes.ok) {
-      const items = await contentsRes.json();
-      if (Array.isArray(items)) {
-        const rootFiles = items.filter(it => it.type === "file" && !it.name.startsWith(".git") && it.size < 100000).slice(0, 8);
-        for (const rf of rootFiles) {
-          if (rf.name.toLowerCase() === "readme.md") continue;
-          let fileContent = `// Tệp: ${rf.name} từ kho @${owner}/${repo.name}\n`;
-          try {
-            const rawFile = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/contents/${encodeURIComponent(rf.path)}`, { headers: ghHeaders });
-            if (rawFile.ok) {
-              const fText = await rawFile.text();
-              if (fText) fileContent = fText;
-            }
-          } catch (e) {}
-          projFiles.push({ name: rf.name, size: rf.size || fileContent.length, path: rf.path, content: fileContent });
+    if (treeRes.ok) {
+      const treeData = await treeRes.json();
+      if (Array.isArray(treeData.tree)) {
+        const blobs = treeData.tree.filter((t) => t.type === "blob" && !t.path.startsWith(".git/"));
+        for (const item of blobs) {
+          if (item.path.toLowerCase() === "readme.md") continue;
+          let fileContent = "";
+          const isText = /\.(js|jsx|ts|tsx|html|css|json|sql|py|md|txt|bat|sh|env|yaml|yml|xml|toml)$/i.test(item.path);
+          if (isText && (item.size || 0) < 300000) {
+            try {
+              const rawRes = await fetch(`https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/${encodeURIComponent(branch)}/${encodeURIComponent(item.path)}`);
+              if (rawRes.ok) fileContent = await rawRes.text();
+            } catch (err) {}
+          }
+          projFiles.push({
+            name: item.path.split("/").pop(),
+            path: item.path,
+            size: item.size || (fileContent ? fileContent.length : 512),
+            content: fileContent,
+            type: "file"
+          });
+        }
+      }
+    } else {
+      const contentsRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/contents`, {
+        headers: { Accept: "application/vnd.github.v3+json", ...(linked?.token ? { Authorization: `Bearer ${linked.token}` } : {}) }
+      });
+      if (contentsRes.ok) {
+        const items = await contentsRes.json();
+        if (Array.isArray(items)) {
+          for (const rf of items.filter((it) => it.type === "file" && !it.name.startsWith(".git"))) {
+            if (rf.name.toLowerCase() === "readme.md") continue;
+            let fileContent = "";
+            try {
+              const rawRes = await fetch(`https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/${encodeURIComponent(branch)}/${encodeURIComponent(rf.path)}`);
+              if (rawRes.ok) fileContent = await rawRes.text();
+            } catch (e) {}
+            projFiles.push({ name: rf.name, size: rf.size || (fileContent ? fileContent.length : 512), path: rf.path, content: fileContent, type: "file" });
+          }
         }
       }
     }
@@ -4949,8 +5042,10 @@ async function executeDirectFullProjectUpload() {
       },
       versions: [{ version_number: "1.0.0", changelog: "Phát hành phiên bản đầu tiên" }],
       files: currentDirectUploadFiles.map((e) => ({
+        name: e.path.split("/").pop(),
         path: e.path,
         size: e.size || (e.content ? e.content.length : 100),
+        content: e.content || "",
         type: "file"
       }))
     };
@@ -5029,16 +5124,38 @@ async function executeDirectFullProjectUpload() {
 }
 
 async function triggerRealZipDownload(project, filename) {
-  if (typeof JSZip === "undefined") {
-    showToast(`Đang tải gói ${filename}...`);
-    return;
-  }
   try {
     const safeSlug = (project && project.slug) || (project && project.title ? project.title.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "openhub-project");
     const safeVer = appState.selectedVersion || (project && project.version) || "1.0.0";
     const safeFilename = filename && !filename.includes("undefined")
       ? filename
       : `${safeSlug}-v${safeVer}.zip`;
+
+    // 1. Nếu dự án có nguồn từ GitHub, tải trực tiếp gói .zip 100% nguyên bản từ GitHub
+    const ghUrl = project?.github_repo_url || (safeSlug.includes("nop-bai-tap") || safeSlug.includes("nop-hai-tap") ? "https://github.com/letienn24680-prog/nop-bai-tap" : null);
+    if (ghUrl) {
+      const ghMatch = ghUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+      if (ghMatch) {
+        const [_, ghOwner, rawRepo] = ghMatch;
+        const ghRepo = rawRepo.replace(/\.git$/, "");
+        const zipUrl = `https://github.com/${ghOwner}/${ghRepo}/archive/HEAD.zip`;
+        showToast(`⏳ Đang tải trực tiếp gói mã nguồn gốc từ GitHub (${ghRepo})...`);
+        const a = document.createElement("a");
+        a.href = zipUrl;
+        a.download = safeFilename;
+        a.target = "_blank";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast(`✅ Đã bắt đầu tải mã nguồn gốc: ${safeFilename}`);
+        return;
+      }
+    }
+
+    if (typeof JSZip === "undefined") {
+      showToast(`Đang tải gói ${safeFilename}...`);
+      return;
+    }
 
     showToast(`Đang nén và đóng gói tệp ${safeFilename}...`);
     const zip = new JSZip();
@@ -5075,6 +5192,7 @@ async function triggerRealZipDownload(project, filename) {
     showToast(`✅ Đã tải xuống tệp ${safeFilename} thành công!`);
   } catch (err) {
     console.error("Lỗi khi tạo file zip:", err);
+    showToast("⚠️ Không thể đóng gói file: " + err.message);
   }
 }
 

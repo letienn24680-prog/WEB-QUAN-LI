@@ -97,16 +97,114 @@ module.exports = async (req, res) => {
       // TRƯỜNG HỢP A: GET /api/v1/projects/:slug/versions/:ver/tree
       if (segments.length >= 3 && segments[1] === "versions" && segments[3] === "tree") {
         const slug = decodeURIComponent(segments[0]);
-        const ver = decodeURIComponent(segments[2]);
+        const ver = decodeURIComponent(segments[2]) || "1.0.0";
         const proj = all.find((p) => p.slug === slug || p.id === slug) || all[0];
-        const files = (proj && Array.isArray(proj.files) && proj.files.length > 0)
+        let files = (proj && Array.isArray(proj.files) && proj.files.length > 0)
           ? proj.files
-          : generateStarterFiles(proj ? proj.title : slug, slug);
+          : null;
+
+        const ghUrl = proj?.github_repo_url || (slug.includes("nop-bai-tap") || slug.includes("nop-hai-tap") ? "https://github.com/letienn24680-prog/nop-bai-tap" : null);
+        if ((!files || files.length <= 1) && ghUrl) {
+          const ghMatch = ghUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+          if (ghMatch) {
+            const [_, ghOwner, rawRepo] = ghMatch;
+            const ghRepo = rawRepo.replace(/\.git$/, "");
+            try {
+              const treeResp = await fetch(`https://api.github.com/repos/${ghOwner}/${ghRepo}/git/trees/main?recursive=1`, {
+                headers: { "User-Agent": "Mozilla/5.0" }
+              });
+              if (treeResp.ok) {
+                const treeJson = await treeResp.json();
+                if (Array.isArray(treeJson.tree)) {
+                  files = treeJson.tree
+                    .filter((item) => item.type === "blob" && !item.path.startsWith(".git/"))
+                    .map((item) => ({
+                      name: item.path.split("/").pop(),
+                      path: item.path,
+                      size: item.size || 512,
+                      type: "file"
+                    }));
+                }
+              }
+            } catch (err) {}
+          }
+        }
+
+        if (!files || files.length === 0) {
+          files = generateStarterFiles(proj ? proj.title : slug, slug);
+        }
 
         return res.status(200).json({
-          version_number: ver || "1.0.0",
+          version_number: ver,
           sha256_checksum: proj?.sha256_hash || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
           tree: buildTreeFromFiles(files)
+        });
+      }
+
+      // TRƯỜNG HỢP A2: GET /api/v1/projects/:slug/versions/:ver/file?path=...
+      if (segments.length >= 3 && segments[1] === "versions" && segments[3] === "file") {
+        const slug = decodeURIComponent(segments[0]);
+        const ver = decodeURIComponent(segments[2]) || "1.0.0";
+        let filePath = req.query?.path || "";
+        if (!filePath && req.url.includes("path=")) {
+          filePath = decodeURIComponent(req.url.split("path=")[1].split("&")[0]);
+        }
+        const proj = all.find((p) => p.slug === slug || p.id === slug) || all[0];
+        let foundFile = (proj?.files || []).find((f) => (f.path || f.name) === filePath || f.name === filePath);
+        let content = foundFile?.content || "";
+
+        const ghUrl = proj?.github_repo_url || (slug.includes("nop-bai-tap") || slug.includes("nop-hai-tap") ? "https://github.com/letienn24680-prog/nop-bai-tap" : null);
+        if (!content && ghUrl) {
+          const ghMatch = ghUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+          if (ghMatch) {
+            const [_, ghOwner, rawRepo] = ghMatch;
+            const ghRepo = rawRepo.replace(/\.git$/, "");
+            try {
+              const rawMain = await fetch(`https://raw.githubusercontent.com/${ghOwner}/${ghRepo}/main/${filePath}`);
+              if (rawMain.ok) {
+                content = await rawMain.text();
+              } else {
+                const rawMaster = await fetch(`https://raw.githubusercontent.com/${ghOwner}/${ghRepo}/master/${filePath}`);
+                if (rawMaster.ok) content = await rawMaster.text();
+              }
+            } catch (err) {}
+          }
+        }
+
+        if (!content) {
+          content = `// Tệp: ${filePath}\n// Dự án: ${proj?.title || slug}\n`;
+        }
+
+        const lines = content.split(/\r?\n/);
+        return res.status(200).json({
+          file_name: filePath.split("/").pop() || filePath,
+          relative_path: filePath,
+          size_bytes: foundFile?.size || content.length,
+          preview_available: true,
+          mode: "syntax_highlight",
+          line_count: lines.length,
+          content: content,
+          notice: ""
+        });
+      }
+
+      // TRƯỜNG HỢP A3: GET /api/v1/projects/:slug/versions/:ver/download
+      if (segments.length >= 3 && segments[1] === "versions" && segments[3] === "download") {
+        const slug = decodeURIComponent(segments[0]);
+        const ver = decodeURIComponent(segments[2]) || "1.0.0";
+        const proj = all.find((p) => p.slug === slug || p.id === slug);
+        const ghUrl = proj?.github_repo_url || (slug.includes("nop-bai-tap") || slug.includes("nop-hai-tap") ? "https://github.com/letienn24680-prog/nop-bai-tap" : null);
+        if (ghUrl) {
+          const ghMatch = ghUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+          if (ghMatch) {
+            const [_, ghOwner, rawRepo] = ghMatch;
+            const ghRepo = rawRepo.replace(/\.git$/, "");
+            return res.redirect(302, `https://github.com/${ghOwner}/${ghRepo}/archive/HEAD.zip`);
+          }
+        }
+        return res.status(200).json({
+          signedUrl: `#download-${slug}-v${ver}.zip`,
+          filename: `${slug}-v${ver}.zip`
         });
       }
 
@@ -198,10 +296,22 @@ module.exports = async (req, res) => {
       if (segments.length >= 3 && segments[1] === "versions" && segments[3] === "download") {
         const slug = decodeURIComponent(segments[0]);
         const ver = decodeURIComponent(segments[2]) || "1.0.0";
+        const all = await db.getAllProjects();
+        const proj = all.find((p) => p.slug === slug || p.id === slug);
+        const ghUrl = proj?.github_repo_url || (slug.includes("nop-bai-tap") || slug.includes("nop-hai-tap") ? "https://github.com/letienn24680-prog/nop-bai-tap" : null);
+        let signedUrl = `#download-${slug}-v${ver}.zip`;
+        if (ghUrl) {
+          const ghMatch = ghUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+          if (ghMatch) {
+            const [_, ghOwner, rawRepo] = ghMatch;
+            const ghRepo = rawRepo.replace(/\.git$/, "");
+            signedUrl = `https://github.com/${ghOwner}/${ghRepo}/archive/HEAD.zip`;
+          }
+        }
         return res.status(200).json({
-          signedUrl: `#download-${slug}-v${ver}.zip`,
+          signedUrl,
           filename: `${slug}-v${ver}.zip`,
-          sha256_checksum: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          sha256_checksum: proj?.sha256_hash || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         });
       }
 

@@ -53,6 +53,40 @@ function recordGlobalDeletedSlug(slugOrId) {
 // Mẫu dự án khởi tạo mặc định ban đầu nếu cơ sở dữ liệu chưa có
 const DEFAULT_SEED_PROJECTS = [
   {
+    id: "p-nop-bai-tap-0",
+    slug: "nop-bai-tap",
+    title: "EduProof - Hệ Thống Nộp & Chấm Bài Tập Minh Chứng",
+    short_description: "Ứng dụng web chuyên biệt hỗ trợ học sinh nộp bài tập về nhà bằng hình ảnh minh chứng hoặc tài liệu số, giáo viên chấm điểm và vẽ bút đỏ trực tiếp.",
+    category_id: 1,
+    category_name: "Web Application",
+    license_type: "MIT",
+    github_repo_url: "https://github.com/letienn24680-prog/nop-bai-tap",
+    demo_url: "https://quan-li.vercel.app/#explore",
+    tags: ["JavaScript", "HTML5", "CSS3", "Supabase", "Education", "github-sync"],
+    health_score: 98,
+    star_count: 36,
+    download_count: 120,
+    view_count: 450,
+    owner_username: "letienn24680-prog",
+    version: "1.0.0",
+    price: 0,
+    size_bytes: 472000,
+    created_at: new Date().toISOString(),
+    files: [
+      { name: "index.html", path: "index.html", size: 77118, type: "file" },
+      { name: "app.css", path: "app.css", size: 55006, type: "file" },
+      { name: "app.js", path: "app.js", size: 289234, type: "file" },
+      { name: "galaxy-bg.jpg", path: "galaxy-bg.jpg", size: 32219, type: "file" },
+      { name: "schema.sql", path: "schema.sql", size: 17153, type: "file" },
+      { name: "start.bat", path: "start.bat", size: 372, type: "file" },
+      { name: "supabase-config.js", path: "supabase-config.js", size: 922, type: "file" },
+      { name: "test_system.js", path: "test_system.js", size: 124972, type: "file" },
+      { name: "api/send-email.js", path: "api/send-email.js", size: 819, type: "file" },
+      { name: "README.md", path: "README.md", size: 3156, type: "file" },
+      { name: ".gitignore", path: ".gitignore", size: 176, type: "file" }
+    ]
+  },
+  {
     id: "p-vietrag-1",
     slug: "vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo",
     title: "VietRAG Studio - Trợ Lý AI Truy Xuất Tài Liệu Nội Bộ",
@@ -180,8 +214,9 @@ async function getAllProjects() {
     const existing = merged.find((p) => p.slug === item.slug || (p.id && item.id && p.id === item.id));
     if (!existing) {
       merged.push(item);
-    } else if (!existing.files && item.files) {
-      existing.files = item.files;
+    } else {
+      if ((!existing.files || existing.files.length === 0) && item.files) existing.files = item.files;
+      if (!existing.github_repo_url && item.github_repo_url) existing.github_repo_url = item.github_repo_url;
     }
   }
 
