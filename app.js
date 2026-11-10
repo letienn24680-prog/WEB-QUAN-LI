@@ -360,16 +360,32 @@ window.addEventListener("DOMContentLoaded", async () => {
   setupVirtualKeyboardGuard();
   setupTouchSheetGesturePhysics();
 
-  // Khôi phục phiên làm việc đã lưu (nếu có)
+  // Phân biệt F5 (Tải lại trang) với Thoát/Mở mới trình duyệt (kể cả khi Chrome bật "Continue where you left off")
   try {
+    const navEntry = (typeof performance !== "undefined" && performance.getEntriesByType)
+      ? performance.getEntriesByType("navigation")[0]
+      : null;
+    const isReload = navEntry
+      ? navEntry.type === "reload"
+      : (typeof performance !== "undefined" && performance.navigation && performance.navigation.type === 1);
+
     const saved = sessionStorage.getItem("openhub_user");
-    if (saved) {
+    const sessionActive = sessionStorage.getItem("openhub_session_active");
+
+    // Chỉ duy trì phiên khi người dùng chủ động F5 tải lại trang trong cùng tab đang làm việc
+    // Nếu là mở mới trình duyệt, mở tab mới hoặc khôi phục tab sau khi đóng: bắt buộc đăng nhập lại
+    if (!isReload || !sessionActive || !saved) {
+      sessionStorage.removeItem("openhub_user");
+      sessionStorage.removeItem("openhub_token");
+      sessionStorage.removeItem("openhub_session_active");
+      appState.currentUser = null;
+    } else {
       appState.currentUser = JSON.parse(saved);
-      // BẢO VỆ TỐI CAO: Tài khoản admin luôn luôn là role "admin", tự động khôi phục nếu lỡ bị đổi thành moderator/contributor
       if (appState.currentUser && appState.currentUser.username?.toLowerCase() === "admin") {
         appState.currentUser.role = "admin";
         sessionStorage.setItem("openhub_user", JSON.stringify(appState.currentUser));
       }
+      sessionStorage.setItem("openhub_last_active", String(Date.now()));
     }
   } catch (e) {
     appState.currentUser = null;
@@ -3149,6 +3165,8 @@ function setAuthenticatedUser(user, token) {
   try {
     sessionStorage.setItem("openhub_user", JSON.stringify(user));
     if (token) sessionStorage.setItem("openhub_token", token);
+    sessionStorage.setItem("openhub_session_active", "1");
+    sessionStorage.setItem("openhub_last_active", String(Date.now()));
   } catch (e) {
     /* ignore */
   }
@@ -3209,6 +3227,8 @@ function logoutUser() {
   try {
     sessionStorage.removeItem("openhub_user");
     sessionStorage.removeItem("openhub_token");
+    sessionStorage.removeItem("openhub_session_active");
+    sessionStorage.removeItem("openhub_last_active");
   } catch (e) {
     /* ignore */
   }
