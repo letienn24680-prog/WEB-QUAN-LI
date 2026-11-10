@@ -1590,7 +1590,14 @@ async function openProjectDetail(slug) {
     demoLink.style.display = "none";
   }
 
+  const isPriv = Boolean(d.github_repo_private || d.is_private_repo);
+  const privBadge = document.getElementById("detailPrivateRepoBadge");
+  if (privBadge) {
+    privBadge.style.display = isPriv ? "inline-block" : "none";
+  }
+
   const ghLink = document.getElementById("detailGitHubSourceLink");
+  const ghNote = document.getElementById("detailGitHubSourceNote");
   if (ghLink) {
     if (d.github_repo_url) {
       ghLink.href = d.github_repo_url;
@@ -1598,8 +1605,10 @@ async function openProjectDetail(slug) {
       ghLink.style.alignItems = "center";
       ghLink.style.justifyContent = "center";
       ghLink.style.gap = "6px";
+      if (ghNote) ghNote.style.display = isPriv ? "block" : "none";
     } else {
       ghLink.style.display = "none";
+      if (ghNote) ghNote.style.display = "none";
     }
   }
 
@@ -4148,20 +4157,63 @@ async function importSelectedGitHubRepoByName(repoName, customOwner = null, cust
 
   showToast(`⏳ Đang đồng bộ kho "${repo.name}" từ GitHub...`);
 
-  // Thử lấy nội dung README từ GitHub
+  // 1. Lấy README qua GitHub API (hỗ trợ cả kho công khai và riêng tư khi có Token)
+  const ghHeaders = { Accept: "application/vnd.github.v3.raw" };
+  if (linked && linked.token) ghHeaders["Authorization"] = `Bearer ${linked.token}`;
+
   let readmeContent = `# ${title}\n\n${repo.description || "Dự án mã nguồn được đồng bộ từ kho lưu trữ GitHub."}\n\n## Kho lưu trữ GitHub\n- Địa chỉ: ${cleanUrl}\n- Ngôn ngữ: ${repo.language || "Chưa xác định"}\n- Tác giả: @${owner}\n- Giấy phép: ${repo.license?.name || "MIT License"}\n- Cập nhật: ${new Date(repo.updated_at).toLocaleDateString("vi-VN")}\n`;
   try {
-    const rawRes = await fetch(`https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/${repo.default_branch || "main"}/README.md`);
-    if (rawRes.ok) {
-      const text = await rawRes.text();
-      if (text && text.trim().length > 10) {
-        readmeContent = text;
+    const apiReadme = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/readme`, { headers: ghHeaders });
+    if (apiReadme.ok) {
+      const text = await apiReadme.text();
+      if (text && text.trim().length > 10) readmeContent = text;
+    } else {
+      const rawRes = await fetch(`https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/${repo.default_branch || "main"}/README.md`);
+      if (rawRes.ok) {
+        const text = await rawRes.text();
+        if (text && text.trim().length > 10) readmeContent = text;
       }
     }
   } catch (err) {}
 
+  // 2. Tải danh sách tệp mã nguồn từ kho GitHub để nén vào gói tải Web
+  let projFiles = [
+    { name: "README.md", size: readmeContent.length, path: "README.md", content: readmeContent }
+  ];
+  try {
+    const contentsRes = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/contents`, {
+      headers: { Accept: "application/vnd.github.v3+json", ...(linked?.token ? { Authorization: `Bearer ${linked.token}` } : {}) }
+    });
+    if (contentsRes.ok) {
+      const items = await contentsRes.json();
+      if (Array.isArray(items)) {
+        const rootFiles = items.filter(it => it.type === "file" && !it.name.startsWith(".git") && it.size < 100000).slice(0, 8);
+        for (const rf of rootFiles) {
+          if (rf.name.toLowerCase() === "readme.md") continue;
+          let fileContent = `// Tệp: ${rf.name} từ kho @${owner}/${repo.name}\n`;
+          try {
+            const rawFile = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/contents/${encodeURIComponent(rf.path)}`, { headers: ghHeaders });
+            if (rawFile.ok) {
+              const fText = await rawFile.text();
+              if (fText) fileContent = fText;
+            }
+          } catch (e) {}
+          projFiles.push({ name: rf.name, size: rf.size || fileContent.length, path: rf.path, content: fileContent });
+        }
+      }
+    }
+  } catch (e) {}
+
+  if (projFiles.length === 1) {
+    projFiles.push(
+      { name: "package.json", size: 512, path: "package.json", content: JSON.stringify({ name: repo.name, version: "1.0.0", description: repo.description || "", repository: cleanUrl }, null, 2) },
+      { name: repo.language === "Python" ? "main.py" : "index.js", size: 256, path: repo.language === "Python" ? "main.py" : "index.js", content: `// Dự án ${repo.name} đồng bộ từ GitHub @${owner}\nconsole.log("Khởi chạy ${repo.name}");\n` }
+    );
+  }
+
   const catId = mapGitHubLanguageToCategory(repo.language);
   const currentWebUser = appState.currentUser ? appState.currentUser.username : "admin";
+  const isPrivate = Boolean(repo.private);
 
   // Khởi tạo dự án client-side và gán cho người dùng hiện tại
   const newProj = {
@@ -4175,10 +4227,12 @@ async function importSelectedGitHubRepoByName(repoName, customOwner = null, cust
     is_free: true,
     owner_username: currentWebUser,
     github_repo_url: cleanUrl,
+    github_repo_private: isPrivate,
+    is_private_repo: isPrivate,
     health_score: 98,
     star_count: Math.max(repo.stargazers_count || 0, 5),
     download_count: Math.max(repo.forks_count || 0, 1),
-    tags: ["github-sync", repo.language || "open-source", repo.name].filter(Boolean),
+    tags: ["github-sync", repo.language || "open-source", repo.name, isPrivate ? "private-repo" : "public-repo"].filter(Boolean),
     created_at: new Date().toISOString(),
     readme_content: readmeContent,
     quick_start_guide: `### Hướng dẫn chạy dự án ${title}\n\n1. Clone kho lưu trữ từ GitHub:\n\`\`\`bash\ngit clone ${cleanUrl}\ncd ${repo.name}\n\`\`\`\n2. Cài đặt các gói phụ thuộc:\n\`\`\`bash\n${repo.language === "Python" ? "pip install -r requirements.txt" : "npm install"}\n\`\`\`\n3. Khởi chạy ứng dụng:\n\`\`\`bash\n${repo.language === "Python" ? "python main.py" : "npm start"}\n\`\`\`\n`,
@@ -4186,11 +4240,7 @@ async function importSelectedGitHubRepoByName(repoName, customOwner = null, cust
       { version_number: "1.0.0", archive_size_bytes: readmeContent.length + 1024, release_notes: "Phiên bản đồng bộ trực tiếp từ GitHub." }
     ],
     latest_version: { version_number: "1.0.0", archive_size_bytes: readmeContent.length + 1024 },
-    files: [
-      { name: "README.md", size: readmeContent.length, path: "README.md", content: readmeContent },
-      { name: "package.json", size: 512, path: "package.json", content: JSON.stringify({ name: repo.name, version: "1.0.0", description: repo.description || "", repository: cleanUrl }, null, 2) },
-      { name: repo.language === "Python" ? "main.py" : "index.js", size: 256, path: repo.language === "Python" ? "main.py" : "index.js", content: `// Dự án ${repo.name} đồng bộ từ GitHub @${owner}\nconsole.log("Khởi chạy ${repo.name}");\n` }
-    ]
+    files: projFiles
   };
 
   if (!appState.projects) appState.projects = [];
