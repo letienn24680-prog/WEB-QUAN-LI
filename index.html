@@ -14,17 +14,14 @@
 </head>
 <body class="theme-dark">
   <noscript>
-    <div style="position: fixed; inset: 0; background: #0B0F19; color: #F3F4F6; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; font-family: system-ui, -apple-system, sans-serif;">
-      <div style="width: 64px; height: 64px; border-radius: 16px; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.4); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 20px;">
-        ⚡
-      </div>
-      <h2 style="font-size: 1.6rem; margin-bottom: 10px; color: #FFFFFF; font-weight: 700;">Yêu Cầu Kích Hoạt JavaScript</h2>
-      <p style="color: #94A3B8; max-width: 520px; line-height: 1.6; margin-bottom: 24px; font-size: 0.95rem;">
+    <div role="alert" aria-live="assertive" style="position: fixed; inset: 0; background: #0B0F19; color: #F3F4F6; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; font-family: system-ui, -apple-system, sans-serif;">
+      <h1 style="font-size: 1.6rem; margin-bottom: 12px; color: #FFFFFF; font-weight: 700;">[!] Yêu Cầu Kích Hoạt JavaScript (JavaScript Required)</h1>
+      <p style="color: #94A3B8; max-width: 540px; line-height: 1.6; margin-bottom: 20px; font-size: 0.95rem;">
         NexaPanel OpenHub là hệ thống quản trị mã nguồn tương tác thời gian thực, yêu cầu JavaScript để quét an toàn 4 tầng, bảo mật 2FA và hiển thị biểu đồ phân tích.
       </p>
-      <div style="padding: 12px 20px; background: #111827; border: 1px solid #1F2937; border-radius: 8px; font-size: 0.85rem; color: #CBD5E1;">
-        👉 Vui lòng bật JavaScript trong cài đặt trình duyệt của bạn và tải lại trang (F5).
-      </div>
+      <p style="padding: 12px 20px; background: #111827; border: 1px solid #1F2937; border-radius: 8px; font-size: 0.88rem; color: #CBD5E1; max-width: 540px; line-height: 1.5;">
+        Hướng dẫn: Vui lòng bật JavaScript trong cài đặt trình duyệt của bạn và tải lại trang (nhấn phím F5 hoặc phím R).
+      </p>
     </div>
   </noscript>
   <div class="app-shell">
@@ -38,7 +35,7 @@
       <div class="sidebar-top-row">
         <div class="sidebar-brand" onclick="navigateView('dashboard'); closeMobileSidebarDrawer();" role="button" tabindex="0">
           <div class="brand-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
           </div>
           <div>
             <div class="brand-title">NexaPanel</div>
@@ -46,7 +43,7 @@
           </div>
         </div>
         <button type="button" class="mobile-drawer-close-btn" onclick="closeMobileSidebarDrawer()" aria-label="Đóng menu">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -54,7 +51,7 @@
         <button id="navDashboardBtn" class="side-link active" onclick="navigateView('dashboard')">
           <div class="side-link-left">
             <span class="side-link-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             </span>
             <span>Bảng điều khiển <span style="display:none">Dashboard</span></span>
           </div>
@@ -63,7 +60,7 @@
         <button id="navExploreBtn" class="side-link" onclick="navigateView('explore')">
           <div class="side-link-left">
             <span class="side-link-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
             </span>
             <span>Kho dự án <span style="display:none">Products</span></span>
           </div>
@@ -72,7 +69,7 @@
         <button id="navOrdersBtn" class="side-link" onclick="openBundleCartModal()">
           <div class="side-link-left">
             <span class="side-link-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
             </span>
             <span>Giỏ tải gộp <span style="display:none">Orders</span></span>
           </div>
@@ -81,7 +78,7 @@
         <button id="navWalletBtn" class="side-link" onclick="openWalletModal()">
           <div class="side-link-left">
             <span class="side-link-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="16" cy="15" r="1.5"/></svg>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="16" cy="15" r="1.5"/></svg>
             </span>
             <span>Ví &amp; Nạp tiền <span style="display:none">Wallet</span></span>
           </div>
@@ -90,7 +87,7 @@
         <button id="navUploadBtn" class="side-link" onclick="navigateView('upload')">
           <div class="side-link-left">
             <span class="side-link-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             </span>
             <span>Đăng tải &amp; Quét <span style="display:none">Upload</span></span>
           </div>
@@ -99,7 +96,7 @@
         <button id="navCustomersBtn" class="side-link" onclick="navigateView('portfolio')">
           <div class="side-link-left">
             <span class="side-link-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </span>
             <span>Hồ sơ của tôi <span style="display:none">Customers</span></span>
           </div>
@@ -108,7 +105,7 @@
         <button id="navAdminBtn" class="side-link" style="display: none;" onclick="navigateView('admin')">
           <div class="side-link-left">
             <span class="side-link-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             </span>
             <span>Kiểm duyệt an toàn <span style="display:none">Reports</span></span>
           </div>
@@ -117,7 +114,7 @@
         <button id="navAuthBtn" class="side-link" onclick="navigateView('auth')">
           <div class="side-link-left">
             <span class="side-link-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </span>
             <span>Cài đặt bảo mật <span style="display:none">Settings</span></span>
           </div>
@@ -126,7 +123,7 @@
         <button id="navEmailBtn" class="side-link" onclick="openEmailModal()">
           <div class="side-link-left">
             <span class="side-link-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             </span>
             <span>Hộp thư hỗ trợ <span style="display:none">Email</span></span>
           </div>
@@ -135,7 +132,7 @@
         <button id="navChatBtn" class="side-link" onclick="openChatModal()">
           <div class="side-link-left">
             <span class="side-link-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </span>
             <span>Kênh trò chuyện <span style="display:none">Chat</span></span>
           </div>
@@ -148,7 +145,7 @@
         <button class="side-link" onclick="openHelpModal()">
           <div class="side-link-left">
             <span class="side-link-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </span>
             <span>Hướng dẫn kỹ thuật <span style="display:none">Help Center</span></span>
           </div>
@@ -156,7 +153,7 @@
         <button class="side-link" onclick="logoutUser()">
           <div class="side-link-left">
             <span class="side-link-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </span>
             <span>Đăng xuất <span style="display:none">Logout</span></span>
           </div>
@@ -186,11 +183,11 @@
       <header class="topbar">
         <div class="topbar-left">
           <button type="button" class="top-icon-btn mobile-menu-trigger" onclick="openMobileSidebarDrawer()" aria-label="Mở Menu điều hướng">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
 
           <div class="command-search-trigger" onclick="openCommandPalette()" role="button" tabindex="0">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color: var(--text-muted); flex-shrink: 0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color: var(--text-muted); flex-shrink: 0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <span class="cmd-trigger-text">
               <span class="hide-xs">Tìm kiếm sản phẩm, đơn hàng, dự án... (Ctrl + K)</span>
               <span class="show-xs">Tìm kiếm...</span>
@@ -202,22 +199,22 @@
 
         <div class="topbar-actions">
           <button id="themeToggleBtn" class="top-icon-btn top-icon-circle hide-xs" onclick="toggleVisualTheme()" title="Chuyển đổi giao diện Sáng / Tối">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </button>
 
           <button id="topNotifBtn" class="top-icon-btn top-icon-circle hide-xs" style="position: relative;" onclick="openNotificationsModal()" title="Thông báo hệ thống">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span id="topNotifBadge" style="position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; background: #EF4444; border-radius: 50%; box-shadow: 0 0 8px #EF4444; display: none;"></span>
           </button>
 
           <button id="topWalletBtn" class="top-icon-btn top-wallet-btn" onclick="openWalletModal()" title="Ví điện tử, nạp tiền MB Bank &amp; tra cứu">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="16" cy="15" r="1.5"/></svg>
+            <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="16" cy="15" r="1.5"/></svg>
             <span class="hide-xs">Ví:</span>
             <strong id="topWalletBalance" class="tabular-nums font-bold" style="color: #10B981;">0 đ</strong>
           </button>
 
           <button id="topBundleCartBtn" class="top-icon-btn top-cart-btn" onclick="openBundleCartModal()" title="Mở Giỏ dự án">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
             <span class="hide-xs">Giỏ hàng</span>
             <span class="cart-count-pill tabular-nums" id="topBundleCount">0</span>
           </button>
@@ -273,7 +270,7 @@
                 "Từng bước nhỏ mỗi ngày đem lại kết quả lớn." <span style="display:none">Small steps every day lead to big results</span>
               </div>
               <div class="dash-motivation-art">
-                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                <svg aria-hidden="true" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
               </div>
             </div>
           </div>
@@ -295,7 +292,7 @@
               <div class="dash-card-header">
                 <div class="dash-card-title-group">
                   <div class="dash-card-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                   </div>
                   <div>
                     <h3>Tổng Quan Doanh Số <span style="display:none">Sales Overview</span></h3>
@@ -328,7 +325,7 @@
                 <div class="dash-card-header">
                   <div class="dash-card-title-group">
                     <div class="dash-card-icon" style="background:rgba(245,158,11,0.15);color:#FBBF24;">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
                     </div>
                     <h3>Khách Hàng Tiêu Biểu <span style="display:none">Top Customers</span></h3>
                   </div>
@@ -342,7 +339,7 @@
                 <div class="dash-card-header">
                   <div class="dash-card-title-group">
                     <div class="dash-card-icon" style="background:rgba(99,102,241,0.15);color:#818CF8;">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                     </div>
                     <h3>Hoạt Động Gần Đây <span style="display:none">Recent Activities</span></h3>
                   </div>
@@ -359,7 +356,7 @@
               <div class="dash-card-header">
                 <div class="dash-card-title-group">
                   <div class="dash-card-icon" style="background:rgba(139,92,246,0.15);color:#A78BFA;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
                   </div>
                   <h3>Sản Phẩm &amp; Dự Án Bán Chạy <span style="display:none">Top Selling Products</span></h3>
                 </div>
@@ -372,7 +369,7 @@
               <div class="dash-card-header">
                 <div class="dash-card-title-group">
                   <div class="dash-card-icon" style="background:rgba(16,185,129,0.15);color:#34D399;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
                   </div>
                   <h3>Phân Bổ Doanh Thu <span style="display:none">Revenue Breakdown</span></h3>
                 </div>
@@ -760,7 +757,7 @@
                     <div class="password-input-wrap">
                       <input type="password" id="regPassword" class="form-input" placeholder="Nhập mật khẩu (ví dụ: UltraSecure#2026)" oninput="handleRealtimePasswordMeter(this.value)">
                       <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('regPassword', this)" title="Hiện / Ẩn mật khẩu" aria-label="Hiện mật khẩu">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       </button>
                     </div>
                     <div class="pwd-meter-bars">
@@ -862,7 +859,7 @@
                     <div class="password-input-wrap">
                       <input type="password" id="profileCurrentPassword" class="form-input" placeholder="Nhập mật khẩu hiện tại..." required>
                       <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('profileCurrentPassword', this)" title="Hiện / Ẩn mật khẩu" aria-label="Hiện mật khẩu">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       </button>
                     </div>
                   </div>
@@ -873,7 +870,7 @@
                       <div class="password-input-wrap">
                         <input type="password" id="profileNewPassword" class="form-input" placeholder="Mật khẩu mới..." required>
                         <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('profileNewPassword', this)" title="Hiện / Ẩn mật khẩu" aria-label="Hiện mật khẩu">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         </button>
                       </div>
                     </div>
@@ -882,7 +879,7 @@
                       <div class="password-input-wrap">
                         <input type="password" id="profileConfirmPassword" class="form-input" placeholder="Xác nhận lại..." required>
                         <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('profileConfirmPassword', this)" title="Hiện / Ẩn mật khẩu" aria-label="Hiện mật khẩu">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         </button>
                       </div>
                     </div>
@@ -1405,7 +1402,7 @@
       <div class="modal-header">
         <h3>Tìm kiếm nhanh toàn hệ thống (Command Palette)</h3>
         <button type="button" class="btn-close" onclick="closeCommandPalette()" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <input type="text" id="cmdPaletteInput" class="form-input" placeholder="Gõ tên dự án, thẻ công nghệ hoặc mã kết nối 6 ký tự (HUB-849)..." oninput="handleCommandPaletteSearch(this.value)">
@@ -1419,7 +1416,7 @@
       <div class="modal-header">
         <h3>Giỏ Dự Án (Project Bundle Cart — Tải nhiều dự án 1 chạm)</h3>
         <button type="button" class="btn-close" onclick="closeBundleCartModal()" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <p class="text-muted" style="font-size:0.85rem;margin-bottom:0.75rem;">Hệ thống tự động loại bỏ dự án đã gỡ hoặc đang cách ly (EC-15) và đóng gói các dự án hợp lệ kèm <code>BUNDLE_MANIFEST.txt</code>.</p>
@@ -1438,7 +1435,7 @@
       <div class="modal-header">
         <h3>Báo cáo Dự án Lỗi hoặc Vi phạm An toàn</h3>
         <button type="button" class="btn-close" onclick="closeReportModal()" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div class="modal-body">
@@ -1470,7 +1467,7 @@
       <div class="modal-header">
         <h3>So Sánh Phiên Bản Mã Nguồn (Version Diff)</h3>
         <button type="button" class="btn-close" onclick="closeDiffViewerModal()" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div id="diffViewerBody" class="diff-body" style="max-height: 60vh; overflow-y: auto;"></div>
@@ -1485,7 +1482,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:8px;">
           <strong>Cây Thư Mục Dự Án</strong>
           <button type="button" class="btn-close" onclick="closeMobileFileTreeSheet()" aria-label="Đóng">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
       </div>
@@ -1497,31 +1494,31 @@
   <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Điều hướng di động">
     <button type="button" id="mobNavExplore" class="mob-nav-item active" onclick="navigateView('explore')">
       <span class="mob-nav-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
       </span>
       <span class="mob-nav-lbl">Khám phá</span>
     </button>
     <button type="button" id="mobNavDash" class="mob-nav-item" onclick="navigateView('dashboard')">
       <span class="mob-nav-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       </span>
       <span class="mob-nav-lbl">Bảng điều khiển</span>
     </button>
     <button type="button" id="mobNavBundle" class="mob-nav-item" onclick="openBundleCartModal()">
       <span class="mob-nav-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
       </span>
       <span class="mob-nav-lbl">Giỏ (<span id="mobileBottomBundleCount" class="tabular-nums">0</span>)</span>
     </button>
     <button type="button" id="mobNavUpload" class="mob-nav-item" onclick="navigateView('upload')">
       <span class="mob-nav-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       </span>
       <span class="mob-nav-lbl">Đăng tải</span>
     </button>
     <button type="button" id="mobNavMore" class="mob-nav-item" onclick="if(!appState.currentUser){openAuthModal('register')}else{navigateView('portfolio')}">
       <span class="mob-nav-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </span>
       <span class="mob-nav-lbl">Tài khoản</span>
     </button>
@@ -1533,7 +1530,7 @@
       <div class="modal-header">
         <h3>Xem Trên Điện Thoại — Lấy Dự Án Trên PC (Cross-Device Handoff)</h3>
         <button type="button" class="btn-close" onclick="closeMobileToPcHandoffModal()" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div id="handoffModalBody" style="margin-bottom:1rem;"></div>
@@ -1560,7 +1557,7 @@
           </div>
         </div>
         <button type="button" class="btn-close" onclick="closeAuthModal()" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -1598,7 +1595,7 @@
             <div class="password-input-wrap">
               <input type="password" id="authRegPassword" class="form-input" placeholder="Nhập mật khẩu (tối thiểu 8 ký tự, có số &amp; chữ hoa)" required oninput="handleModalPasswordMeter(this.value)">
               <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('authRegPassword', this)" title="Hiện / Ẩn mật khẩu" aria-label="Hiện mật khẩu">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
             <div class="pwd-meter-bars" style="margin-top: 6px;">
@@ -1640,7 +1637,7 @@
             <div class="password-input-wrap" style="margin-top: 4px;">
               <input type="password" id="authLoginPassword" class="form-input" placeholder="Nhập mật khẩu..." required autocomplete="current-password">
               <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('authLoginPassword', this)" title="Hiện / Ẩn mật khẩu" aria-label="Hiện mật khẩu">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
           </div>
@@ -1712,7 +1709,7 @@
           <small class="text-muted" style="font-size: 0.78rem;">Phản hồi hỗ trợ kỹ thuật và kênh liên hệ trực tiếp với tác giả &amp; quản trị</small>
         </div>
         <button type="button" class="btn-close" onclick="closeEmailModal()" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -1754,7 +1751,7 @@
           <small class="text-muted" style="font-size: 0.78rem;">Kênh thảo luận trực tiếp với tác giả và người dùng</small>
         </div>
         <button type="button" class="btn-close" onclick="closeChatModal()" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div id="chatMessagesBox" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; padding: 10px; background: var(--bg-canvas); border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 12px;"></div>
@@ -1779,7 +1776,7 @@
           </div>
         </div>
         <button type="button" class="btn-close" onclick="closeHelpModal()" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -1890,7 +1887,7 @@
       <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 10px;">
           <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(16,185,129,0.15); display: flex; align-items: center; justify-content: center; color: #10B981;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="16" cy="15" r="1.5"/></svg>
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><circle cx="16" cy="15" r="1.5"/></svg>
           </div>
           <div>
             <h3 style="margin: 0; font-size: 1.15rem;">Ví Điện Tử &amp; Nạp Tiền MB Bank</h3>
@@ -1898,7 +1895,7 @@
           </div>
         </div>
         <button type="button" class="btn-close" onclick="closeWalletModal()" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -2079,7 +2076,7 @@
           </div>
         </div>
         <button type="button" class="btn-close" onclick="closeEditProjectModal()" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -2136,7 +2133,7 @@
           </div>
         </div>
         <button type="button" class="btn-close" onclick="closeNotificationsModal()" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
 
@@ -2166,7 +2163,7 @@
           </div>
         </div>
         <button type="button" class="btn-close" onclick="closeAppConfirmModal(false)" aria-label="Đóng">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div id="appConfirmMessage" style="padding: 16px 4px; font-size: 0.9rem; line-height: 1.55; color: #E2E8F0; white-space: pre-line;"></div>
