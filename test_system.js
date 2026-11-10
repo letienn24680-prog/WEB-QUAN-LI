@@ -607,6 +607,13 @@ async function runAllTests() {
     assert.ok(jsText.includes("handleDirectFolderSelected"), "app.js: Phải có hàm xử lý Thư mục tải lên");
     assert.ok(jsText.includes("executeDirectFullProjectUpload"), "app.js: Phải có hàm xuất bản toàn bộ dự án");
     assert.ok(jsText.includes("triggerRealZipDownload"), "app.js: Phải có hàm tạo và tải tệp ZIP thực tế cho người dùng");
+
+    // 9. Kiểm tra Tính Năng Nâng Cấp Dung Lượng Cloud Storage (Gói Siêu Rẻ Max 30k & Liên Hệ Admin)
+    assert.ok(htmlText.includes('id="storageUpgradeModal"'), "index.html: Phải có modal nâng cấp dung lượng Cloud Storage");
+    assert.ok(htmlText.includes("30.000 đ"), "index.html: Gói dung lượng cao nhất không vượt quá 30.000 đ");
+    assert.ok(jsText.includes("openStorageUpgradeModal"), "app.js: Phải có hàm mở modal nâng cấp dung lượng");
+    assert.ok(jsText.includes("purchaseStoragePlan"), "app.js: Phải có hàm mua gói dung lượng");
+    assert.ok(jsText.includes("contactAdminForStorage"), "app.js: Phải có chức năng liên hệ Admin xin cấp thêm dung lượng");
   });
 
   console.log("\n======================================================================");
