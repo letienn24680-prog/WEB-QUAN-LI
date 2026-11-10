@@ -16,6 +16,9 @@ function createAppServer(platformInstance) {
     const body = JSON.stringify(data);
     res.writeHead(statusCode, {
       "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, X-Role, X-User-Id, X-Forwarded-For, Idempotency-Key, X-Hub-Signature-256, Range",
