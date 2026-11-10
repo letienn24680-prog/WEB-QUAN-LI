@@ -1,0 +1,337 @@
+// =============================================================================
+// OPENHUB v2.0 - SUPABASE / POSTGRESQL & PERSISTENT SHARED DATA LAYER
+// Đảm bảo mọi tài khoản, thiết bị và trình duyệt đều truy xuất chung dữ liệu
+// =============================================================================
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
+
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+
+const TMP_DIR = os.tmpdir();
+const PROJECTS_FILE = path.join(TMP_DIR, "openhub_shared_projects.json");
+const USERS_FILE = path.join(TMP_DIR, "openhub_shared_users.json");
+const TOKENS_FILE = path.join(TMP_DIR, "openhub_verification_tokens.json");
+
+// Mẫu dự án khởi tạo mặc định ban đầu nếu cơ sở dữ liệu chưa có
+const DEFAULT_SEED_PROJECTS = [
+  {
+    id: "p-vietrag-1",
+    slug: "vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo",
+    title: "VietRAG Studio - Trợ Lý AI Truy Xuất Tài Liệu Nội Bộ",
+    short_description: "Nền tảng hỏi đáp tài liệu PDF/DOCX tiếng Việt sử dụng Hybrid Search (BM25 + Vector) và trích dẫn nguồn chuẩn xác.",
+    category_id: 3,
+    category_name: "Trí tuệ nhân tạo (AI)",
+    license_type: "MIT",
+    demo_url: "https://vietrag-demo.openhub.vn",
+    tags: ["Python", "FastAPI", "TypeScript", "React", "Docker"],
+    health_score: 98,
+    star_count: 342,
+    download_count: 1420,
+    view_count: 5890,
+    owner_username: "minh_architect",
+    version: "1.1.0",
+    price: 0,
+    size_bytes: 45200000,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: "p-nextcommerce-2",
+    slug: "nextcommerce-pro-bo-khung-thuong-mai-dien-tu-da-gian-hang",
+    title: "NextCommerce Pro - Bộ Khung Thương Mại Điện Tử Đa Gian Hàng",
+    short_description: "Full-stack Next.js App Router, tích hợp sẵn giỏ hàng thời gian thực, phân quyền người bán và cổng thanh toán VietQR.",
+    category_id: 1,
+    category_name: "Web Application",
+    license_type: "Apache-2.0",
+    demo_url: "https://nextcommerce-demo.openhub.vn",
+    tags: ["Next.js", "TypeScript", "React", "Node.js", "PostgreSQL"],
+    health_score: 96,
+    star_count: 215,
+    download_count: 980,
+    view_count: 3410,
+    owner_username: "minh_architect",
+    version: "2.0.0",
+    price: 50000,
+    size_bytes: 38100000,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: "p-secguard-3",
+    slug: "secguard-cli-cong-cu-quet-ro-ri-khoa-bi-mat-phu-thuoc-loi-thoi",
+    title: "SecGuard CLI - Công Cụ Quét Rò Rỉ Khóa Bí Mật & Phụ Thuộc Lỗi Thời",
+    short_description: "Công cụ dòng lệnh siêu nhẹ giúp lập trình viên kiểm tra tự động khóa AWS, Private Key và lỗ hổng CVE trước khi git commit.",
+    category_id: 5,
+    category_name: "Bảo mật & DevSecOps",
+    license_type: "GPL-3.0",
+    demo_url: null,
+    tags: ["Rust", "Go", "Docker", "Security"],
+    health_score: 99,
+    star_count: 164,
+    download_count: 645,
+    view_count: 2150,
+    owner_username: "admin_secops",
+    version: "1.2.0",
+    price: 0,
+    size_bytes: 12400000,
+    created_at: new Date().toISOString()
+  }
+];
+
+function isSupabaseConfigured() {
+  return Boolean(SUPABASE_URL && SUPABASE_KEY);
+}
+
+async function supabaseFetch(table, options = {}) {
+  const url = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/${table}${options.query ? "?" + options.query : ""}`;
+  const headers = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json",
+    "Prefer": options.prefer || "return=representation"
+  };
+  return fetch(url, {
+    method: options.method || "GET",
+    headers,
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+}
+
+// -----------------------------------------------------------------------------
+// 1. DỰ ÁN DÙNG CHUNG (PROJECTS)
+// -----------------------------------------------------------------------------
+async function getAllProjects() {
+  if (isSupabaseConfigured()) {
+    try {
+      const res = await supabaseFetch("projects", {
+        query: "select=*&deleted_at=is.null&order=created_at.desc"
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0) return rows;
+      }
+    } catch (e) {
+      console.error("Supabase getAllProjects error:", e);
+    }
+  }
+
+  // Bộ nhớ đệm dùng chung trên môi trường Server
+  try {
+    if (fs.existsSync(PROJECTS_FILE)) {
+      const parsed = JSON.parse(fs.readFileSync(PROJECTS_FILE, "utf8"));
+      if (Array.isArray(parsed)) {
+        return parsed.filter((p) => !p.deleted_at);
+      }
+    } else {
+      // Khởi tạo file lần đầu
+      fs.writeFileSync(PROJECTS_FILE, JSON.stringify(DEFAULT_SEED_PROJECTS), "utf8");
+    }
+  } catch (e) {}
+
+  if (Array.isArray(global.__openhub_shared_projects)) {
+    return global.__openhub_shared_projects.filter((p) => !p.deleted_at);
+  }
+  global.__openhub_shared_projects = [...DEFAULT_SEED_PROJECTS];
+  return global.__openhub_shared_projects;
+}
+
+async function saveProject(project) {
+  if (isSupabaseConfigured()) {
+    try {
+      const res = await supabaseFetch("projects", {
+        method: "POST",
+        body: project,
+        prefer: "resolution=merge-duplicates"
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        return Array.isArray(saved) ? saved[0] : saved;
+      }
+    } catch (e) {
+      console.error("Supabase saveProject error:", e);
+    }
+  }
+
+  // Cập nhật bộ nhớ file và runtime
+  const list = await getAllProjects();
+  const idx = list.findIndex((p) => p.id === project.id || p.slug === project.slug);
+  if (idx >= 0) {
+    list[idx] = { ...list[idx], ...project, updated_at: new Date().toISOString() };
+  } else {
+    list.unshift({ ...project, created_at: project.created_at || new Date().toISOString() });
+  }
+
+  global.__openhub_shared_projects = list;
+  try {
+    fs.writeFileSync(PROJECTS_FILE, JSON.stringify(list), "utf8");
+  } catch (e) {}
+
+  return project;
+}
+
+async function deleteProject(id, slug) {
+  if (isSupabaseConfigured()) {
+    try {
+      const matchQuery = id ? `id=eq.${encodeURIComponent(id)}` : `slug=eq.${encodeURIComponent(slug)}`;
+      await supabaseFetch("projects", {
+        method: "PATCH",
+        query: matchQuery,
+        body: { deleted_at: new Date().toISOString(), visibility_status: "rejected" }
+      });
+    } catch (e) {
+      console.error("Supabase deleteProject error:", e);
+    }
+  }
+
+  const list = await getAllProjects();
+  const filtered = list.filter((p) => {
+    if (id && p.id === id) return false;
+    if (slug && p.slug === slug) return false;
+    return true;
+  });
+
+  global.__openhub_shared_projects = filtered;
+  try {
+    fs.writeFileSync(PROJECTS_FILE, JSON.stringify(filtered), "utf8");
+  } catch (e) {}
+
+  return true;
+}
+
+// -----------------------------------------------------------------------------
+// 2. TÀI KHOẢN & XÁC THỰC OTP EMAIL QUA RESEND
+// -----------------------------------------------------------------------------
+async function saveVerificationToken(email, otpCode, pendingUserData) {
+  const record = {
+    email: email.toLowerCase().trim(),
+    otp_code: String(otpCode),
+    user_data: pendingUserData,
+    created_at: Date.now(),
+    expires_at: Date.now() + 5 * 60 * 1000 // Hết hạn sau 5 phút
+  };
+
+  if (isSupabaseConfigured()) {
+    try {
+      await supabaseFetch("verification_tokens", {
+        method: "POST",
+        body: {
+          email: record.email,
+          token_type: "email_otp",
+          otp_code_hash: String(otpCode),
+          expires_at: new Date(record.expires_at).toISOString()
+        }
+      });
+    } catch (e) {}
+  }
+
+  let tokens = {};
+  try {
+    if (fs.existsSync(TOKENS_FILE)) {
+      tokens = JSON.parse(fs.readFileSync(TOKENS_FILE, "utf8")) || {};
+    }
+  } catch (e) {}
+  tokens[record.email] = record;
+  global.__openhub_verification_tokens = tokens;
+  try {
+    fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokens), "utf8");
+  } catch (e) {}
+
+  return record;
+}
+
+async function verifyTokenAndActivateUser(email, enteredOtp) {
+  const cleanEmail = String(email || "").toLowerCase().trim();
+  const cleanOtp = String(enteredOtp || "").trim();
+
+  let tokens = global.__openhub_verification_tokens || {};
+  try {
+    if (fs.existsSync(TOKENS_FILE)) {
+      tokens = JSON.parse(fs.readFileSync(TOKENS_FILE, "utf8")) || tokens;
+    }
+  } catch (e) {}
+
+  const tokenRecord = tokens[cleanEmail];
+  if (!tokenRecord) {
+    return { success: false, error: "Mã OTP không tồn tại hoặc phiên xác thực đã hết hạn." };
+  }
+
+  if (Date.now() > tokenRecord.expires_at) {
+    delete tokens[cleanEmail];
+    return { success: false, error: "Mã OTP đã hết hạn (quá 5 phút). Vui lòng yêu cầu gửi lại mã mới." };
+  }
+
+  if (tokenRecord.otp_code !== cleanOtp) {
+    return { success: false, error: "Mã OTP xác thực không chính xác. Vui lòng kiểm tra lại email!" };
+  }
+
+  // Xác thực thành công: Lưu tài khoản chính thức vào Database
+  const newUser = {
+    id: "usr-" + Date.now(),
+    username: tokenRecord.user_data.username,
+    display_name: tokenRecord.user_data.displayName || tokenRecord.user_data.username,
+    email: cleanEmail,
+    password: tokenRecord.user_data.password,
+    role: "developer",
+    balance: 0,
+    status: "active",
+    created_at: new Date().toISOString()
+  };
+
+  if (isSupabaseConfigured()) {
+    try {
+      await supabaseFetch("users", {
+        method: "POST",
+        body: {
+          username: newUser.username,
+          display_name: newUser.display_name,
+          email: newUser.email,
+          role: newUser.role,
+          status: "active"
+        }
+      });
+    } catch (e) {}
+  }
+
+  // Cập nhật Users store
+  let users = global.__openhub_shared_users || [];
+  try {
+    if (fs.existsSync(USERS_FILE)) {
+      users = JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) || users;
+    }
+  } catch (e) {}
+
+  const existIdx = users.findIndex((u) => u.username.toLowerCase() === newUser.username.toLowerCase() || u.email.toLowerCase() === cleanEmail);
+  if (existIdx >= 0) users[existIdx] = newUser;
+  else users.push(newUser);
+
+  global.__openhub_shared_users = users;
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users), "utf8");
+    delete tokens[cleanEmail];
+    fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokens), "utf8");
+  } catch (e) {}
+
+  return { success: true, user: newUser };
+}
+
+async function findUserByIdentifier(identifier, password) {
+  const cleanId = String(identifier || "").toLowerCase().trim();
+  let users = global.__openhub_shared_users || [];
+  try {
+    if (fs.existsSync(USERS_FILE)) {
+      users = JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) || users;
+    }
+  } catch (e) {}
+
+  return users.find((u) => (u.username.toLowerCase() === cleanId || u.email.toLowerCase() === cleanId) && u.password === password) || null;
+}
+
+module.exports = {
+  isSupabaseConfigured,
+  getAllProjects,
+  saveProject,
+  deleteProject,
+  saveVerificationToken,
+  verifyTokenAndActivateUser,
+  findUserByIdentifier
+};

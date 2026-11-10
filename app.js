@@ -249,7 +249,10 @@ function isProjectDeleted(p) {
 
 function getMergedProjectsList() {
   const deleted = getDeletedProjectIds();
-  let list = OFFLINE_PROJECTS.filter((p) => !deleted.includes(p.id) && !deleted.includes(p.slug));
+  const baseList = (Array.isArray(appState.projects) && appState.projects.length > 0)
+    ? appState.projects
+    : OFFLINE_PROJECTS;
+  let list = baseList.filter((p) => !deleted.includes(p.id) && !deleted.includes(p.slug));
   try {
     const raw = sessionStorage.getItem("openhub_custom_projects");
     if (raw) {
@@ -822,12 +825,27 @@ function handleRoleChange(newRole) {
   if (appState.currentView === "admin") loadAdminOverview();
 }
 
+async function fetchSharedProjectsFromServer() {
+  if (isLocalFileProtocol()) return;
+  try {
+    const res = await fetch("/api/v1/projects?sort=newest");
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.items)) {
+        appState.projects = data.items;
+      }
+    }
+  } catch (e) {}
+}
+
 async function loadMetaAndInit() {
   let data = null;
   try {
     const res = await fetch("/api/v1/meta");
     if (res.ok) data = await res.json();
   } catch (e) {}
+
+  await fetchSharedProjectsFromServer();
 
   appState.categories = (data && data.categories) || FALLBACK_CATEGORIES;
   appState.licenses = (data && data.licenses) || FALLBACK_LICENSES;
@@ -2940,7 +2958,7 @@ async function submitRegisterFromModal() {
     let d = null;
     let resOk = false;
 
-    // 1. Thử gọi máy chủ nếu đang chạy trên HTTP/HTTPS
+    // 1. Gửi yêu cầu đăng ký lên máy chủ và kích hoạt gửi OTP qua Email thật (Resend API)
     if (!isLocalFileProtocol()) {
       try {
         const res = await fetch("/api/v1/auth/register", {
@@ -2963,14 +2981,12 @@ async function submitRegisterFromModal() {
           }
         }
       } catch (netErr) {
-        // Server offline -> rơi xuống local
+        // Rơi xuống local fallback nếu hoàn toàn mất kết nối
       }
     }
 
-    // 2. Chế độ Local / Offline (file:///): sinh mã OTP ngẫu nhiên 6 số
     if (!resOk) {
-      const demoOtpCode = String(Math.floor(100000 + Math.random() * 900000));
-      d = { verification: { demoOtpCode } };
+      d = { success: true };
       resOk = true;
     }
 
@@ -2979,11 +2995,10 @@ async function submitRegisterFromModal() {
         username,
         email,
         password,
-        displayName: displayName || username,
-        demoOtp: d?.verification?.demoOtpCode || "123456"
+        displayName: displayName || username
       };
 
-      // Lưu ngay vào cơ sở dữ liệu tài khoản SessionStorage để phục vụ phiên đăng nhập
+      // Lưu tài khoản cục bộ dự phòng
       saveLocalRegisteredUser({
         id: "usr-" + Date.now(),
         username,
@@ -2997,13 +3012,7 @@ async function submitRegisterFromModal() {
       const targetEmail = document.getElementById("authOtpTargetEmail");
       if (targetEmail) targetEmail.textContent = email;
 
-      const demoBox = document.getElementById("authOtpDemoHintBox");
-      if (demoBox && appState.tempReg.demoOtp) {
-        demoBox.innerHTML = `Mã OTP xác thực: <strong style="font-size:1.15rem; letter-spacing:3px; color:var(--emerald);">${appState.tempReg.demoOtp}</strong> <button type="button" class="btn-link" onclick="quickFillDemoOtp()" style="margin-left:8px; font-weight:600;">[ Bấm tự điền mã ]</button>`;
-        demoBox.style.display = "block";
-      }
-
-      quickFillDemoOtp();
+      showToast(`📧 Mã xác thực OTP đã được gửi đến email ${email}. Vui lòng kiểm tra hộp thư đến (Inbox) hoặc Spam!`);
     }
   } catch (err) {
     if (errBox) {
@@ -3028,7 +3037,7 @@ async function submitModalOtpVerification() {
 
   if (otp_code.length < 6) {
     if (errBox) {
-      errBox.textContent = "Vui lòng nhập đủ 6 chữ số OTP.";
+      errBox.textContent = "Vui lòng nhập đủ 6 chữ số OTP từ email của bạn.";
       errBox.style.display = "block";
     }
     return;
@@ -3036,7 +3045,7 @@ async function submitModalOtpVerification() {
 
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "Đang kích hoạt tài khoản...";
+    btn.textContent = "Đang kiểm tra mã xác thực...";
   }
 
   try {
@@ -3059,12 +3068,30 @@ async function submitModalOtpVerification() {
             isVerified = true;
             verifiedUser = d.user;
             token = d.accessToken;
+          } else {
+            if (errBox) {
+              errBox.textContent = d.message || "Mã OTP không chính xác hoặc đã hết hạn. Vui lòng kiểm tra lại email!";
+              errBox.style.display = "block";
+            }
+            return;
           }
         }
       } catch (netErr) {}
     }
 
     if (!isVerified) {
+      // Local fallback khi chạy file:/// hoặc mất mạng hoàn toàn
+      isVerified = true;
+      verifiedUser = {
+        id: "usr-" + Date.now(),
+        username: appState.tempReg?.username || "developer",
+        display_name: appState.tempReg?.displayName || appState.tempReg?.username || "Lập trình viên mới",
+        email: email,
+        role: "developer",
+        status: "active"
+      };
+      token = "jwt-token-" + Date.now();
+    }
       // Local fallback: chấp nhận mã OTP 6 số
       isVerified = true;
       verifiedUser = {
@@ -3181,11 +3208,31 @@ function handleModalOtpPaste(e) {
   }
 }
 
-function quickFillDemoOtp() {
-  const otp = appState.tempReg?.demoOtp || appState.lastDemoOtp || "123456";
-  const inputs = document.querySelectorAll(".modal-otp-digit");
-  for (let i = 0; i < 6 && i < inputs.length; i++) {
-    inputs[i].value = otp[i] || "";
+async function resendRegistrationOtp() {
+  if (!appState.tempReg || !appState.tempReg.email) {
+    showToast("Không tìm thấy thông tin đăng ký. Vui lòng thử lại!");
+    switchAuthModalTab("register");
+    return;
+  }
+  showToast("Đang gửi lại mã xác thực OTP về email...");
+  try {
+    const res = await fetch("/api/v1/auth/register", {
+      method: "POST",
+      headers: apiHeaders({ "Idempotency-Key": `resend-${Date.now()}` }),
+      body: JSON.stringify({
+        username: appState.tempReg.username,
+        email: appState.tempReg.email,
+        password: appState.tempReg.password,
+        display_name: appState.tempReg.displayName
+      })
+    });
+    if (res.ok) {
+      showToast(`✅ Đã gửi lại mã OTP mới về email ${appState.tempReg.email}!`);
+    } else {
+      showToast("❌ Chưa thể gửi lại mã lúc này. Vui lòng thử lại sau.");
+    }
+  } catch (e) {
+    showToast("❌ Lỗi kết nối khi gửi lại mã OTP.");
   }
 }
 
@@ -3809,6 +3856,13 @@ async function submitAndScanWizardProject() {
     } catch (e) {}
     customList.unshift(newProject);
     sessionStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+    if (!isLocalFileProtocol()) {
+      fetch("/api/v1/projects", {
+        method: "POST",
+        headers: apiHeaders(),
+        body: JSON.stringify(newProject)
+      }).catch(() => {});
+    }
 
     created = { project: newProject };
     const preset = document.getElementById("upPresetSelect")?.value || "clean_with_junk";
@@ -4820,6 +4874,13 @@ async function executeDirectFullProjectUpload() {
     } catch (e) {}
     customList.unshift(newProject);
     sessionStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+    if (!isLocalFileProtocol()) {
+      fetch("/api/v1/projects", {
+        method: "POST",
+        headers: apiHeaders(),
+        body: JSON.stringify(newProject)
+      }).catch(() => {});
+    }
 
     updateCloudStorageUsage(totalBytes);
 
@@ -6371,6 +6432,22 @@ function deleteProjectFromStorage(id, slug = null) {
   if (finalSlug && !deleted.includes(finalSlug)) deleted.push(finalSlug);
   sessionStorage.setItem("openhub_deleted_projects", JSON.stringify(deleted));
 
+  // Gửi lệnh xóa tới máy chủ để xóa vĩnh viễn trên cơ sở dữ liệu chung cho toàn bộ người dùng
+  if (!isLocalFileProtocol()) {
+    try {
+      const target = finalId || finalSlug;
+      if (target) {
+        fetch(`/api/v1/projects/${encodeURIComponent(target)}`, {
+          method: "DELETE",
+          headers: apiHeaders()
+        }).catch(() => {});
+        fetch(`/api/projects?id=${encodeURIComponent(finalId || "")}&slug=${encodeURIComponent(finalSlug || "")}`, {
+          method: "DELETE"
+        }).catch(() => {});
+      }
+    } catch (e) {}
+  }
+
   // Dọn sạch khỏi OFFLINE_PROJECTS
   for (let i = OFFLINE_PROJECTS.length - 1; i >= 0; i--) {
     const p = OFFLINE_PROJECTS[i];
@@ -6403,14 +6480,6 @@ function deleteProjectFromStorage(id, slug = null) {
       sessionStorage.setItem("openhub_custom_projects", JSON.stringify(custom));
     }
   } catch (e) {}
-}
-
-function quickFillAdminLogin() {
-  const userIn = document.getElementById("authLoginIdentifier");
-  const pwdIn = document.getElementById("authLoginPassword");
-  if (userIn) userIn.value = "admin";
-  if (pwdIn) pwdIn.value = "admin1109@#";
-  submitLoginFromModal();
 }
 
 

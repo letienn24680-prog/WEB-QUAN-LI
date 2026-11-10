@@ -1692,7 +1692,9 @@
           <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 4px;">
             Mã OTP 6 số đã được gửi tới email: <strong id="authOtpTargetEmail" style="color: var(--text-primary);"></strong>
           </p>
-          <div id="authOtpDemoHintBox" class="otp-demo-pill"></div>
+          <div style="margin-top: 8px; padding: 8px 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: var(--radius-sm); font-size: 0.78rem; color: #93C5FD;">
+            ℹ️ Vui lòng mở hộp thư email (Inbox hoặc Spam) để lấy mã xác thực 6 chữ số và nhập vào các ô bên dưới.
+          </div>
         </div>
 
         <div class="otp-inputs-row" id="modalOtpInputsRow">
@@ -1711,7 +1713,7 @@
         </button>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 0.78rem;">
-          <button type="button" class="btn-link" onclick="quickFillDemoOtp()">[ Tự động điền mã OTP ]</button>
+          <button type="button" class="btn-link" onclick="resendRegistrationOtp()">[ Gửi lại mã qua Email ]</button>
           <button type="button" class="btn-link" onclick="switchAuthModalTab('register')">Quay lại</button>
         </div>
       </div>

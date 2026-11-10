@@ -12,6 +12,22 @@
     {
       "source": "/api/v1/auth/session",
       "destination": "/api/session.js"
+    },
+    {
+      "source": "/api/projects(.*)",
+      "destination": "/api/projects.js"
+    },
+    {
+      "source": "/api/v1/projects(.*)",
+      "destination": "/api/projects.js"
+    },
+    {
+      "source": "/api/auth(.*)",
+      "destination": "/api/auth.js"
+    },
+    {
+      "source": "/api/v1/auth/(.*)",
+      "destination": "/api/auth.js"
     }
   ],
   "headers": [
