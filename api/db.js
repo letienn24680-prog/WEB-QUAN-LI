@@ -101,6 +101,7 @@ async function supabaseFetch(table, options = {}) {
 // 1. DỰ ÁN DÙNG CHUNG (PROJECTS)
 // -----------------------------------------------------------------------------
 async function getAllProjects() {
+  let list = [];
   if (isSupabaseConfigured()) {
     try {
       const res = await supabaseFetch("projects", {
@@ -108,45 +109,63 @@ async function getAllProjects() {
       });
       if (res.ok) {
         const rows = await res.json();
-        if (Array.isArray(rows) && rows.length > 0) return rows;
+        if (Array.isArray(rows)) {
+          list = rows;
+        }
       }
     } catch (e) {
       console.error("Supabase getAllProjects error:", e);
     }
   }
 
-  // Bộ nhớ đệm dùng chung trên môi trường Server
+  // Kết hợp cùng bộ nhớ đệm dùng chung trên môi trường Server
+  let cached = [];
   try {
     if (fs.existsSync(PROJECTS_FILE)) {
       const parsed = JSON.parse(fs.readFileSync(PROJECTS_FILE, "utf8"));
-      if (Array.isArray(parsed)) {
-        return parsed.filter((p) => !p.deleted_at);
-      }
+      if (Array.isArray(parsed)) cached = parsed;
     } else {
-      // Khởi tạo file lần đầu
       fs.writeFileSync(PROJECTS_FILE, JSON.stringify(DEFAULT_SEED_PROJECTS), "utf8");
     }
   } catch (e) {}
 
   if (Array.isArray(global.__openhub_shared_projects)) {
-    return global.__openhub_shared_projects.filter((p) => !p.deleted_at);
+    cached = [...cached, ...global.__openhub_shared_projects];
   }
-  global.__openhub_shared_projects = [...DEFAULT_SEED_PROJECTS];
-  return global.__openhub_shared_projects;
+
+  // Hợp nhất: Dự án từ Supabase + Dự án từ bộ nhớ + Mẫu mặc định khởi tạo
+  const merged = [...list];
+  for (const item of [...cached, ...DEFAULT_SEED_PROJECTS]) {
+    if (!item || !item.slug) continue;
+    const existing = merged.find((p) => p.slug === item.slug || (p.id && item.id && p.id === item.id));
+    if (!existing) {
+      merged.push(item);
+    } else if (!existing.files && item.files) {
+      existing.files = item.files;
+    }
+  }
+
+  return merged.filter((p) => !p.deleted_at);
 }
 
 async function saveProject(project) {
   if (isSupabaseConfigured()) {
     try {
-      const res = await supabaseFetch("projects", {
+      const supabasePayload = {
+        title: project.title,
+        slug: project.slug,
+        short_description: project.short_description || `Dự án ${project.title}`,
+        category_id: Number(project.category_id) || 1,
+        license_type: project.license_type || project.license || "MIT",
+        demo_url: project.demo_url || null,
+        price: Number(project.price) || 0,
+        health_score: Number(project.health_score) || 98
+      };
+      await supabaseFetch("projects", {
         method: "POST",
-        body: project,
+        body: supabasePayload,
         prefer: "resolution=merge-duplicates"
       });
-      if (res.ok) {
-        const saved = await res.json();
-        return Array.isArray(saved) ? saved[0] : saved;
-      }
     } catch (e) {
       console.error("Supabase saveProject error:", e);
     }

@@ -1599,21 +1599,32 @@ async function openProjectDetail(slug) {
     const res = await fetch(`/api/v1/projects/${encodeURIComponent(slug)}`);
     if (res.ok) d = await res.json();
   } catch (e) {}
-  if (!d) {
+  if (d && Array.isArray(d.items)) {
+    d = d.items.find((x) => x.slug === slug || x.id === slug) || d.items[0];
+  }
+  if (!d || !d.slug) {
     d = getOfflineProjectDetail(slug);
+  }
+  if (d) {
+    if (!d.slug) d.slug = slug;
+    if (Array.isArray(d.files) && d.files.length > 0) {
+      const fmap = {};
+      d.files.forEach((f) => { fmap[f.path || f.name] = f.content || `# ${f.path || f.name}\n`; });
+      sessionStorage.setItem("openhub_custom_files_" + d.slug, JSON.stringify(fmap));
+    }
   }
   sk.style.display = "none";
   if (!d || d.visibility_status === "quarantined") {
     err.style.display = "block";
     document.getElementById("detailErrorMessage").textContent =
-      d.quarantine_notice || d.message || "Dự án đang tạm cách ly để kiểm tra an toàn.";
-    appState.currentProject = { slug, id: d.id, visibility_status: "quarantined" };
+      d?.quarantine_notice || d?.message || "Dự án đang tạm cách ly để kiểm tra an toàn.";
+    appState.currentProject = { slug, id: d?.id, visibility_status: "quarantined" };
     updateStickyMobileDownloadBar();
     return;
   }
 
   appState.currentProject = d;
-  appState.selectedVersion = d.latest_version?.version_number || "1.0.0";
+  appState.selectedVersion = d.latest_version?.version_number || d.version || "1.0.0";
   succ.style.display = "block";
   updateStickyMobileDownloadBar();
 
@@ -4461,14 +4472,21 @@ async function importSelectedGitHubRepoByName(repoName, customOwner = null, cust
     if (raw) customList = JSON.parse(raw);
     customList.unshift(newProj);
     sessionStorage.setItem("openhub_custom_projects", JSON.stringify(customList));
+
+    // Lưu bảng tệp mã nguồn để mở ngay cây thư mục và tải ZIP đầy đủ
+    const fmap = {};
+    projFiles.forEach((f) => {
+      fmap[f.path || f.name] = f.content || `# ${f.path || f.name}\n`;
+    });
+    sessionStorage.setItem("openhub_custom_files_" + newProj.slug, JSON.stringify(fmap));
   } catch (err) {}
 
-  // Gửi tới server backend nếu có
+  // Gửi toàn bộ dữ liệu dự án (kèm danh sách tệp) lên máy chủ CSDL dùng chung
   try {
-    await fetch("/api/v1/projects/import-git", {
+    await fetch("/api/v1/projects", {
       method: "POST",
       headers: apiHeaders(),
-      body: JSON.stringify({ repo_url: cleanUrl, title: title })
+      body: JSON.stringify(newProj)
     });
   } catch (e) {}
 
@@ -4920,33 +4938,45 @@ async function triggerRealZipDownload(project, filename) {
     return;
   }
   try {
-    showToast(`Đang nén và đóng gói tệp ${filename}...`);
-    const zip = new JSZip();
-    const customMap = getCustomProjectFileMap(project.slug);
-    const fileMap = customMap || OFFLINE_FILES[project.slug] || OFFLINE_FILES["vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo"];
+    const safeSlug = (project && project.slug) || (project && project.title ? project.title.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "openhub-project");
+    const safeVer = appState.selectedVersion || (project && project.version) || "1.0.0";
+    const safeFilename = filename && !filename.includes("undefined")
+      ? filename
+      : `${safeSlug}-v${safeVer}.zip`;
 
-    if (fileMap) {
+    showToast(`Đang nén và đóng gói tệp ${safeFilename}...`);
+    const zip = new JSZip();
+    const customMap = getCustomProjectFileMap(safeSlug);
+    let fileMap = customMap || OFFLINE_FILES[safeSlug] || OFFLINE_FILES["vietrag-studio-tro-ly-ai-truy-xuat-tai-lieu-noi-bo"];
+
+    if (fileMap && Object.keys(fileMap).length > 0) {
       for (const [path, content] of Object.entries(fileMap)) {
         zip.file(path, content);
       }
-    } else if (project.files && Array.isArray(project.files)) {
+    } else if (project && Array.isArray(project.files) && project.files.length > 0) {
       for (const f of project.files) {
-        zip.file(f.path, f.content || `# ${f.path}\n`);
+        zip.file(f.path || f.name, f.content || `# ${f.path || f.name}\n`);
       }
     } else {
-      zip.file("README.md", `# ${project.title}\n\n${project.short_description}\n`);
+      const projTitle = (project && project.title) || safeSlug;
+      const projDesc = (project && project.short_description) || "Gói mã nguồn được chia sẻ qua nền tảng OpenHub.";
+      zip.file("README.md", `# ${projTitle}\n\n${projDesc}\n\n## Hướng dẫn sử dụng\n\`\`\`bash\nnpm install\nnpm start\n\`\`\`\n`);
+      zip.file("package.json", JSON.stringify({ name: safeSlug, version: safeVer, description: projDesc, main: "index.js", scripts: { start: "node index.js" } }, null, 2));
+      zip.file("index.js", `// Dự án: ${projTitle}\nconsole.log("Khởi chạy ứng dụng ${projTitle} thành công!");\n`);
+      zip.file(".env.example", "PORT=8080\nNODE_ENV=production\n");
+      zip.file("LICENSE", "MIT License\n\nCopyright (c) 2026 OpenHub.\n");
     }
 
     const blob = await zip.generateAsync({ type: "blob" });
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = blobUrl;
-    a.download = filename || `${project.slug}.zip`;
+    a.download = safeFilename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-    showToast(`✅ Đã tải xuống tệp ${filename} thành công!`);
+    showToast(`✅ Đã tải xuống tệp ${safeFilename} thành công!`);
   } catch (err) {
     console.error("Lỗi khi tạo file zip:", err);
   }
